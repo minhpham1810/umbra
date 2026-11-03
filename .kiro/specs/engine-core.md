@@ -17,14 +17,14 @@ A headless, deterministic 3D simulation that turns `(scene, seed, inputs[]) → 
 - [ ] CI: run every saved replay twice in Node, compare hashes.
 
 ### Should (v2-kiroween, Dec 4)
-- [ ] Sensor colliders as triggers (goal pickup, hazard zones).
+- [x] Sensor colliders as triggers (goal pickup, hazard zones).
 - [ ] Moving platform support (kinematic body on a path).
-- [ ] Out-of-bounds detection (player below `y = -10`).
-- [ ] Browser hash test via Playwright.
+- [x] Out-of-bounds detection (player below `y = -10`).
+- [x] Browser hash test via Playwright.
 
 ### Could (later)
-- [ ] Navmesh baking from level geometry.
-- [ ] Observer API (`simObserve`).
+- [x] Navmesh baking from level geometry.
+- [x] Observer API (`simObserve`).
 
 ## Acceptance
 `pnpm test --filter @umbra/engine` passes, including the fast-check property test.

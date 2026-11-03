@@ -49,12 +49,16 @@ pnpm --filter @umbra/agents typecheck
 pnpm --filter @umbra/lantern typecheck
 pnpm --filter @umbra/engine determinism-check
 pnpm --filter @umbra/engine validate-scenes
+pnpm --filter @umbra/engine exec playwright install chromium   # once
+pnpm --filter @umbra/engine browser-hash-check
 ```
 
 Tests cover schema validation, deterministic replays, goal sensors, interactive
 versus headless tick hashes, Lantern's winning jump and losing walk, navigation
-islands, missing routes, and the agent navigation exports. CI also builds Lantern.
-Browser-versus-Node hash equality and browser input/rendering checks are not yet automated.
+islands, missing routes, the agent navigation exports, `simObserve`, and
+`searchReach` on Lantern (solvable) and a walled-off copy (unreachable).
+`browser-hash-check` runs the same replays in Node and headless Chromium and
+compares every tick hash; CI runs it. Browser input and rendering are not yet tested.
 
 Build the libraries before importing their package names from Node:
 
@@ -112,8 +116,12 @@ Ramps and stairs currently behave as cubes; moving platforms do not move yet.
 All goal kinds currently behave as collectable sensors, and reaching every goal
 wins. Keys, doors, and hazards do not yet have separate rules. The seed argument
 is retained for replays but the simulation currently has no random systems.
-`simObserve`, reachability search, the MCP server, and the full agent loop remain
-unfinished. Use the targeted Lantern commands above; other apps are still stubs.
+`searchReach(scene, goalId, budget)` treats `budget` as the maximum number of sim runs.
+It follows the navmesh route (or a straight line), tries no jump, held jump, then
+one jump at each tick offset, and only reports a route a fresh `runSim` reproduces.
+It cannot yet find routes needing two separate jumps. Stacked solid blocks in one
+column are merged into a single collider so the player cannot climb walls on the
+seams. The MCP server, `search.strategy`, and the agent loop remain unfinished. Use the targeted Lantern commands above; other apps are still stubs.
 
 Rapier is pinned to 0.12.0. Goal collision fixes change simulation hashes from
 earlier commits even though the Rapier version is unchanged; regenerate earlier

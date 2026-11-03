@@ -46,6 +46,10 @@ jobs:
         run: pnpm test
       - name: Double-run determinism check on benchmark scenes
         run: pnpm --filter @umbra/engine determinism-check
+      - name: Install Chromium
+        run: pnpm --filter @umbra/engine exec playwright install --with-deps chromium
+      - name: Browser-vs-Node hash check
+        run: pnpm --filter @umbra/engine browser-hash-check
 
   # ── scene schema validation ────────────────────────────────────────────────
   validate-scenes:

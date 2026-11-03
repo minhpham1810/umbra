@@ -11,7 +11,8 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "determinism-check": "tsx scripts/determinism-check.ts",
-    "validate-scenes": "tsx scripts/validate-scenes.ts"
+    "validate-scenes": "tsx scripts/validate-scenes.ts",
+    "browser-hash-check": "tsx scripts/browser-hash-check.ts"
   },
   "dependencies": {
     "@dimforge/rapier3d-compat": "0.12.0",
@@ -20,7 +21,9 @@
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "esbuild": "0.21.5",
     "fast-check": "^3.22.0",
+    "playwright": "1.56.1",
     "tsup": "^8.3.5",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3",
