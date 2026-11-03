@@ -18,6 +18,9 @@
       ],
       "@umbra/agents": [
         "../../packages/agents/src/index.ts"
+      ],
+      "@umbra/engine/three": [
+        "../../packages/engine/src/render3d/three.ts"
       ]
     }
   },
