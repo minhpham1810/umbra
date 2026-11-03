@@ -12,6 +12,8 @@ const ui = {
   samples: $("#samples"), events: $("#events"), title: $("#title"), note: $("#note"), verify: $("#verify"),
   play: $<HTMLButtonElement>("#play"), scrub: $<HTMLInputElement>("#scrub"), tick: $("#tick"),
   speed: $<HTMLSelectElement>("#speed"), follow: $<HTMLInputElement>("#follow"), file: $<HTMLInputElement>("#file"),
+  fix: $("#fix"), before: $<HTMLButtonElement>("#show-before"), after: $<HTMLButtonElement>("#show-after"),
+  reason: $("#fix-reason"), edits: $("#edits"),
 };
 const MAX_TICKS = 60 * 60 * 10;
 
@@ -38,6 +40,19 @@ function parseReplay(raw: unknown) {
   return { scene, inputs: inputs as InputFrame[], hash: typeof r["finalStateHash"] === "number" ? r["finalStateHash"] : undefined,
     rapier: typeof r["rapierVersion"] === "string" ? r["rapierVersion"] : undefined,
     note: typeof r["note"] === "string" ? r["note"] : "" };
+}
+
+/** A Fixer edit, as written in an "umbra-fix" evidence file. */
+interface EditMark { op: "add_floor" | "add_wall" | "remove"; x: number; y: number; z: number }
+
+function parseEdits(raw: unknown): EditMark[] {
+  if (!Array.isArray(raw) || raw.length > 64) throw new Error("edits must be an array of at most 64");
+  return raw.map((e: Record<string, unknown>) => {
+    if (!["add_floor", "add_wall", "remove"].includes(e?.["op"] as string) || ![e["x"], e["y"], e["z"]].every(Number.isInteger)) {
+      throw new Error("each edit needs op add_floor|add_wall|remove and integer x, y, z");
+    }
+    return e as unknown as EditMark;
+  });
 }
 
 async function simulate(title: string, raw: unknown): Promise<Loaded> {
@@ -89,7 +104,7 @@ let level = new THREE.Group();
 let platformMeshes: THREE.Mesh[] = [];
 view.add(playerMesh);
 
-function buildLevel(loaded: Loaded) {
+function buildLevel(loaded: Loaded, edits: EditMark[]) {
   view.remove(level);
   level.traverse((o) => { if (o instanceof THREE.Line || o instanceof THREE.Mesh && o.geometry !== box) o.geometry.dispose(); });
   level = new THREE.Group();
@@ -117,6 +132,13 @@ function buildLevel(loaded: Loaded) {
     m.position.set(g.pos.x + 0.5, g.pos.y + 0.5, g.pos.z + 0.5);
     level.add(m);
   }
+  // Outline the cells the Fixer changed: green for added blocks, red for removed ones.
+  for (const e of edits) {
+    const outline = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(1.06, 1.06, 1.06)),
+      new THREE.LineBasicMaterial({ color: e.op === "remove" ? 0xff7a7a : 0x6fdcb0 }));
+    outline.position.set(e.x + 0.5, e.y + 0.5, e.z + 0.5);
+    level.add(outline);
+  }
   // The whole path as a trail, so a run can be read at a glance.
   const trail = new THREE.Line(new THREE.BufferGeometry().setFromPoints(loaded.player.map((p) => new THREE.Vector3(p.x, p.y - 0.6, p.z))),
     new THREE.LineBasicMaterial({ color: 0xffc36c, transparent: true, opacity: 0.7 }));
@@ -138,6 +160,7 @@ function buildLevel(loaded: Loaded) {
 
 // ── playback ───────────────────────────────────────────────────────────────
 let current: Loaded | undefined;
+let fix: { before: Loaded; after: Loaded; edits: EditMark[] } | undefined;
 let tick = 0;
 let playing = false;
 let last = performance.now();
@@ -164,9 +187,24 @@ function setPlaying(on: boolean) {
 async function load(title: string, raw: unknown) {
   setPlaying(false);
   ui.title.textContent = `Loading ${title}…`;
+  let loaded: Loaded;
   try {
-    current = await simulate(title, raw);
+    const r = raw as Record<string, unknown> | null;
+    if (r?.["kind"] === "umbra-fix") {
+      // Fix evidence: the failing run and the fixed run, both re-simulated and hash-checked.
+      const edits = parseEdits(r["edits"]);
+      fix = { edits, before: await simulate(`${title} · before`, r["before"]), after: await simulate(`${title} · after`, r["after"]) };
+      ui.reason.textContent = typeof r["reason"] === "string" ? `Fixer: ${r["reason"].slice(0, 300)}` : "";
+      ui.edits.replaceChildren(...edits.map((e) => Object.assign(document.createElement("li"),
+        { className: e.op === "remove" ? "remove" : "add", textContent: `${e.op} (${e.x}, ${e.y}, ${e.z})` })));
+      loaded = fix.before;
+    } else {
+      fix = undefined;
+      loaded = await simulate(title, raw);
+    }
   } catch (e) {
+    fix = undefined;
+    ui.fix.hidden = true;
     ui.title.textContent = `Could not load ${title}`;
     // Zod errors carry an issues list; show it as "path: message" lines.
     const issues = (e as { issues?: { path: (string | number)[]; message: string }[] }).issues;
@@ -175,6 +213,15 @@ async function load(title: string, raw: unknown) {
     ui.verify.textContent = ""; ui.verify.className = "badge";
     return;
   }
+  ui.fix.hidden = !fix;
+  present(loaded);
+}
+
+function present(loaded: Loaded) {
+  setPlaying(false);
+  current = loaded;
+  ui.before.setAttribute("aria-pressed", String(fix?.before === loaded));
+  ui.after.setAttribute("aria-pressed", String(fix?.after === loaded));
   ui.title.textContent = `${current.title} · ${current.outcome}`;
   ui.note.textContent = current.note;
   ui.verify.textContent = current.verified ? "✓ " + current.reason : "✗ " + current.reason;
@@ -189,7 +236,7 @@ async function load(title: string, raw: unknown) {
     li.append(b);
     return li;
   }) : [Object.assign(document.createElement("li"), { className: "sub", textContent: "No events." })]));
-  buildLevel(current);
+  buildLevel(current, fix?.edits ?? []);
   show(0);
   setPlaying(true);
 }
@@ -203,6 +250,8 @@ async function loadUrl(title: string, url: string) {
 }
 
 ui.play.addEventListener("click", () => setPlaying(!playing));
+ui.before.addEventListener("click", () => { if (fix) present(fix.before); });
+ui.after.addEventListener("click", () => { if (fix) present(fix.after); });
 ui.scrub.addEventListener("input", () => { setPlaying(false); show(Number(ui.scrub.value)); });
 ui.file.addEventListener("change", async () => {
   const f = ui.file.files?.[0];

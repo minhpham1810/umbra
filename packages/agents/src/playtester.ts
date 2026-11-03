@@ -3,7 +3,7 @@
  * The LLM only plans; the navmesh proposes routes and the simulation decides.
  */
 import { z } from "zod";
-import type { Scene } from "@umbra/engine";
+import type { InputFrame, Scene } from "@umbra/engine";
 import { replaySave, searchTarget, type Point } from "./tools/api.js";
 
 /** fall_through: an unmarked hole inside the level; out_of_bounds: an escape over its edge. */
@@ -19,6 +19,8 @@ export interface Finding {
   replayId?: string;
   /** Tick count of the reproducing replay. */
   tick?: number;
+  /** Inputs that reproduce the bug from spawn (falls only); used to build before/after evidence. */
+  inputs?: InputFrame[];
   /** Did the navmesh have a route? Compared with the physics verdict in the benchmark. */
   navRoute: boolean;
   detail: string;
@@ -130,7 +132,7 @@ export async function playtest(scene: Scene, opts: PlaytestOptions = {}): Promis
             : `The player falls out of the level through unmarked hole (${hole.x}, ${hole.z}).`;
           const replayId = await save(r.inputs, `${type}: ${detail}`);
           findings.push({ type, cell: { x: hole.x, y: hole.floorY - 1, z: hole.z },
-            navRoute: r.navRoute, tick: r.inputs.length, ...(replayId ? { replayId } : {}), detail });
+            navRoute: r.navRoute, tick: r.inputs.length, inputs: r.inputs, ...(replayId ? { replayId } : {}), detail });
         }
       }
     }

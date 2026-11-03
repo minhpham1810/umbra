@@ -1,8 +1,8 @@
 import { readFileSync } from "node:fs";
 import { expect, it } from "vitest";
-import { SceneSchema, type Scene } from "@umbra/engine";
+import { SceneSchema, runSim, type Replay, type Scene } from "@umbra/engine";
 import { BLUEPRINT_JSON_SCHEMA, buildLevel, compileBlueprint } from "./builder.js";
-import { FIX_JSON_SCHEMA, applyEdits, fixFinding } from "./fixer.js";
+import { FIX_JSON_SCHEMA, applyEdits, fixEvidence, fixFinding } from "./fixer.js";
 import type { Generate } from "./gemini.js";
 import { holeCandidates, playtest } from "./playtester.js";
 import { runLoop } from "./loop.js";
@@ -15,6 +15,7 @@ const corridor = {
   spawn: { x: 0, z: 1 },
   exit: { x: 0, z: 11 },
 };
+const replay = (r: Replay) => runSim({ scene: r.scene, seed: r.seed, inputs: r.inputs, maxTicks: r.inputs.length });
 /** Replies in order; records prompts and checks each call asks for the right schema. */
 function fake(replies: [object, unknown][]): Generate & { prompts: string[] } {
   const prompts: string[] = [];
@@ -72,6 +73,12 @@ it("accepts a fix only when the bug stops reproducing and nothing new breaks", a
   expect(r.feedback[1]).toContain("introduced fall_through at (2,0,10)");
   expect(gen.prompts[2]).toContain("Previous attempts failed");
   expect(r.report!.findings).toEqual([]);
+  // Evidence replays the same inputs: out of bounds before the fix, not after.
+  const ev = await fixEvidence(holed, r.scene, finding, r.edits, r.reason);
+  expect(ev.after.inputs).toBe(ev.before.inputs);
+  expect((await replay(ev.before)).outcome).toBe("out_of_bounds");
+  expect((await replay(ev.after)).outcome).not.toBe("out_of_bounds");
+  expect(ev.finding).not.toHaveProperty("inputs");
 }, 120_000);
 
 it("applies edits and replaces a pit marker when floor fills it", () => {
@@ -93,4 +100,10 @@ it("runs the loop: build, playtest, fix, clean", async () => {
   expect(result.fixes).toMatchObject([{ edits: stone, attempts: 1 }]);
   expect(result.unresolved).toEqual([]);
   expect(result.scene.pieces.filter((p) => p.kind === "pit")).toHaveLength(12);
+  // No failing run exists for an unreachable goal: before idles, after is a winning route.
+  const ev = result.fixes[0]!.evidence!;
+  expect((await replay(ev.before)).outcome).toBe("timeout");
+  const after = await replay(ev.after);
+  expect(after.outcome).toBe("win");
+  expect(after.finalStateHash).toBe(ev.after.finalStateHash);
 }, 120_000);

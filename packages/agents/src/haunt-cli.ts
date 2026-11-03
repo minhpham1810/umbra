@@ -2,7 +2,7 @@
 // playtest it, fix what is found, and write the scene. Needs GEMINI_API_KEY (.env works).
 // A bare name writes games/lantern/public/levels/<name>.json, playable at Lantern's ?scene=<name>.
 import { mkdir, writeFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
+import { basename, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { DEFAULT_GEMINI_MODEL, geminiGenerate, geminiPlannerWithFallback, loadEnv } from "./gemini.js";
 import { runLoop } from "./loop.js";
@@ -22,7 +22,19 @@ const path = name ? fileURLToPath(new URL(`../../../games/lantern/public/levels/
   : resolve(process.env["INIT_CWD"] ?? ".", out!);
 await mkdir(dirname(path), { recursive: true });
 await writeFile(path, JSON.stringify(result.scene, null, 2) + "\n");
-const { scene: _scene, ...summary } = result;
-console.log(JSON.stringify({ ...summary, wrote: path }, null, 2));
+// Each fix's before/after replays go to Studio (apps/studio/public/fixes/).
+const base = name ?? basename(path, ".json");
+const fixes = await Promise.all(result.fixes.map(async ({ evidence, finding: { inputs: _i, ...finding }, ...fix }, i) => {
+  if (!evidence) return { finding, ...fix };
+  const file = `${base}-fix-${i + 1}.json`;
+  const dest = fileURLToPath(new URL(`../../../apps/studio/public/fixes/${file}`, import.meta.url));
+  await mkdir(dirname(dest), { recursive: true });
+  await writeFile(dest, JSON.stringify(evidence) + "\n");
+  return { finding, ...fix, studio: `?replay=/fixes/${file}` };
+}));
+const strip = (fs: typeof result.unresolved) => fs.map(({ inputs: _i, ...f }) => f);
+console.log(JSON.stringify({ build: result.build, initialFindings: strip(result.initialFindings), fixes,
+  unresolved: strip(result.unresolved), wrote: path }, null, 2));
+if (fixes.some((f) => "studio" in f)) console.error("see fixes: pnpm --filter @umbra/studio dev, then add a fix's studio query to its URL (Lantern may hold port 5173)");
 if (name) console.error(`play it: pnpm --filter @umbra/lantern dev, then open http://127.0.0.1:5173/?scene=${name}`);
 process.exit(result.unresolved.length ? 1 : 0);

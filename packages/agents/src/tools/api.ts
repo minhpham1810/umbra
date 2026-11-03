@@ -91,14 +91,10 @@ export async function simObserve(
 
 // ── replay tool ──────────────────────────────────────────────────────────────
 
-export async function replaySave(
-  scene: Scene,
-  seed: number,
-  inputs: InputFrame[],
-  note?: string,
-): Promise<string> {
+/** Runs the inputs once and returns the replay (with its final hash) without saving it. */
+export async function makeReplay(scene: Scene, seed: number, inputs: InputFrame[], note?: string): Promise<Replay> {
   const result = await runSim({ scene, seed, inputs, maxTicks: inputs.length });
-  const replay: Replay = {
+  return {
     id: randomUUID(),
     rapierVersion: scene.rapierVersion,
     scene,
@@ -108,6 +104,15 @@ export async function replaySave(
     createdAt: new Date().toISOString(),
     ...(note ? { note } : {}),
   };
+}
+
+export async function replaySave(
+  scene: Scene,
+  seed: number,
+  inputs: InputFrame[],
+  note?: string,
+): Promise<string> {
+  const replay = await makeReplay(scene, seed, inputs, note);
   const dir = process.env["UMBRA_REPLAYS_DIR"] ?? "./replays";
   const { writeFile, mkdir } = await import("node:fs/promises");
   await mkdir(dir, { recursive: true });
