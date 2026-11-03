@@ -6,8 +6,8 @@
     "lib": ["ES2022"],
     "skipLibCheck": true,
     "paths": {
-      "@umbra/engine": ["../packages/engine/src/index.ts"],
-      "@umbra/agents": ["../packages/agents/src/index.ts"]
+      "umbra-engine": ["../packages/engine/src/index.ts"],
+      "umbra-agents": ["../packages/agents/src/index.ts"]
     }
   },
   "include": ["src", "scripts", "vitest.config.ts"]

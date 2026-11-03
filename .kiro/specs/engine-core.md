@@ -27,5 +27,5 @@ A headless, deterministic 3D simulation that turns `(scene, seed, inputs[]) → 
 - [x] Observer API (`simObserve`).
 
 ## Acceptance
-`pnpm test --filter @umbra/engine` passes, including the fast-check property test.
+`pnpm test --filter umbra-engine` passes, including the fast-check property test.
 All `tickHashes` match between two Node runs.

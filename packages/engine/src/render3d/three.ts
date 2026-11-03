@@ -1,5 +1,5 @@
 /**
- * Three.js views, imported from "@umbra/engine/three" (three is an optional peer
+ * Three.js views, imported from "umbra-engine/three" (three is an optional peer
  * dependency, so the core engine still runs headless without it). Like the 2D views they
  * only draw: the sims are untouched, so state hashes are the same however a game draws.
  * Materials belong to the caller; dispose() frees only the geometry these views made.

@@ -9,7 +9,7 @@
  * both runs end on the hash stored in the file.
  *
  * Run:  pnpm tsx scripts/determinism-check.ts
- * CI:   pnpm --filter @umbra/engine determinism-check
+ * CI:   pnpm --filter umbra-engine determinism-check
  */
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { resolve, join } from "node:path";

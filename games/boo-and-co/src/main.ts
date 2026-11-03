@@ -5,8 +5,8 @@
  */
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { drawGridTop, fitView, toWorld, type GridMarker } from "@umbra/engine";
-import { gridView } from "@umbra/engine/three";
+import { drawGridTop, fitView, toWorld, type GridMarker } from "umbra-engine";
+import { gridView } from "umbra-engine/three";
 import { MansionSchema, buildCatalog, createMansion, type BuildKind } from "./sim/mansion.js";
 import rawMansion from "./mansion.json";
 

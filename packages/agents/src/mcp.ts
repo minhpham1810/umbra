@@ -4,7 +4,7 @@
  */
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { SceneSchema, Vec3Schema } from "@umbra/engine";
+import { SceneSchema, Vec3Schema } from "umbra-engine";
 import { searchStrategy, strategySummary, type PlanGame } from "./strategy.js";
 import {
   sceneValidate, sceneWrite, simRun, simObserve, searchReach, replaySave, navBake, navPath,
@@ -30,7 +30,7 @@ export interface StrategyGame<T> { name: string; schema: z.ZodType<T>; adapt(lev
 
 /** The Umbra tools. Pass `strategy` to also serve search.strategy for that game. */
 export function createServer<T>(opts: { strategy?: StrategyGame<T> } = {}): McpServer {
-  const server = new McpServer({ name: "umbra", version: "0.0.1" });
+  const server = new McpServer({ name: "umbra", version: "0.1.0" });
 
   server.registerTool("scene.validate", {
     description: "Check a scene against the schema. Returns {ok, errors[]}.",

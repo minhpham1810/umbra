@@ -1,7 +1,7 @@
 /**
  * Validate every scene JSON in benchmark/levels/.
  * Run:  pnpm tsx scripts/validate-scenes.ts
- * CI:   pnpm --filter @umbra/engine validate-scenes
+ * CI:   pnpm --filter umbra-engine validate-scenes
  */
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { resolve, join } from "node:path";

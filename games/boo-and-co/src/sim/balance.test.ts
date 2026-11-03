@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { playtestBalance, searchStrategy } from "@umbra/agents";
+import { playtestBalance, searchStrategy } from "umbra-agents";
 import { mansionGame } from "./balance.js";
 import { MansionSchema, runMansion } from "./mansion.js";
 import raw from "../mansion.json";

@@ -3,8 +3,8 @@
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { SceneSchema, runSim, type InputFrame, type Replay, type Scene } from "@umbra/engine";
-import { fixEvidence, fixFinding, playtest, searchReach } from "@umbra/agents";
+import { SceneSchema, runSim, type InputFrame, type Replay, type Scene } from "umbra-engine";
+import { fixEvidence, fixFinding, playtest, searchReach } from "umbra-agents";
 
 const out = new URL("../public/replays/", import.meta.url);
 const level = (f: string) => SceneSchema.parse(JSON.parse(readFileSync(new URL(`../../../games/lantern/src/${f}`, import.meta.url), "utf8")));

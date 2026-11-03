@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { expect, it } from "vitest";
-import { SceneSchema, runSim, type Scene } from "@umbra/engine";
+import { SceneSchema, runSim, type Scene } from "umbra-engine";
 import { searchReach, simObserve } from "./api.js";
 
 const lantern = SceneSchema.parse(JSON.parse(readFileSync(

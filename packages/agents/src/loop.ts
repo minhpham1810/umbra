@@ -3,7 +3,7 @@
  * reports findings, the Fixer patches them one at a time, and the loop stops when the
  * level is clean or out of fix attempts. Unresolved findings are returned for a human.
  */
-import type { Scene } from "@umbra/engine";
+import type { Scene } from "umbra-engine";
 import { buildLevel, type BuildResult } from "./builder.js";
 import { fixEvidence, fixFinding, sameFinding, type Edit, type FixEvidence } from "./fixer.js";
 import type { Generate } from "./gemini.js";

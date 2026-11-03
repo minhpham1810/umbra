@@ -1,5 +1,5 @@
 // Extra cases for the engine's browser-vs-Node hash check:
-// `pnpm --filter @umbra/engine browser-hash-check --with <this file>`.
+// `pnpm --filter umbra-engine browser-hash-check --with <this file>`.
 import { MansionSchema, runMansion } from "./mansion.js";
 import raw from "../mansion.json";
 

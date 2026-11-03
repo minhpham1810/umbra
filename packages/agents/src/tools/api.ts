@@ -2,11 +2,11 @@
  * Agent tool API — the typed surface agents (and Kiro) call.
  * Each function here is served as an MCP tool by src/mcp.ts.
  */
-import { validateScene, type Scene } from "@umbra/engine";
-import { runSim, createSimulation, navBake, navPath, navDispose, BUTTON, IDLE_FRAME, MovingPlatformPropsSchema, PLATFORM_HALF_Y, type RunResult } from "@umbra/engine";
-import type { InputFrame } from "@umbra/engine";
+import { validateScene, type Scene } from "umbra-engine";
+import { runSim, createSimulation, navBake, navPath, navDispose, BUTTON, IDLE_FRAME, MovingPlatformPropsSchema, PLATFORM_HALF_Y, type RunResult } from "umbra-engine";
+import type { InputFrame } from "umbra-engine";
 import { randomUUID } from "node:crypto";
-import type { Replay, SimEvent } from "@umbra/engine";
+import type { Replay, SimEvent } from "umbra-engine";
 
 // ── scene tools ──────────────────────────────────────────────────────────────
 
@@ -268,5 +268,5 @@ export async function searchReach(scene: Scene, goalId: string, budget: number):
   return { reached, inputs, attempts };
 }
 
-export { navBake, navPath, navDispose } from "@umbra/engine";
-export type { NavBakeResult, NavPathResult, NavIsland } from "@umbra/engine";
+export { navBake, navPath, navDispose } from "umbra-engine";
+export type { NavBakeResult, NavPathResult, NavIsland } from "umbra-engine";

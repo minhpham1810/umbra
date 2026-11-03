@@ -1,4 +1,5 @@
-// Entry point: `pnpm --filter @umbra/agents mcp` serves the Umbra tools over stdio.
+#!/usr/bin/env node
+// Entry point: `pnpm --filter umbra-agents mcp`, or the `umbra-mcp` bin, serves the Umbra tools over stdio.
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { createServer } from "./mcp.js";
 

@@ -1,7 +1,7 @@
 # Umbra
 
 A TypeScript 3D engine for games and headless agent runs. Rapier owns physics;
-the engine's Three.js views (`@umbra/engine/three`, Three.js as an optional peer
+the engine's Three.js views (`umbra-engine/three`, Three.js as an optional peer
 dependency) or its Canvas 2D views (`?view=2d`) draw the games.
 Browser play and `runSim` use the same fixed 60 Hz loop.
 
@@ -100,14 +100,14 @@ size warning. No model API, credentials, or backend server is required.
 
 ```sh
 pnpm test
-pnpm --filter @umbra/engine typecheck
-pnpm --filter @umbra/agents typecheck
+pnpm --filter umbra-engine typecheck
+pnpm --filter umbra-agents typecheck
 pnpm --filter @umbra/lantern typecheck
-pnpm --filter @umbra/engine determinism-check
+pnpm --filter umbra-engine determinism-check
 pnpm lint                                        # determinism rules on engine sim code
-pnpm --filter @umbra/engine validate-scenes
-pnpm --filter @umbra/engine exec playwright install chromium   # once
-pnpm --filter @umbra/engine browser-hash-check
+pnpm --filter umbra-engine validate-scenes
+pnpm --filter umbra-engine exec playwright install chromium   # once
+pnpm --filter umbra-engine browser-hash-check
 ```
 
 Tests cover schema validation, deterministic replays, goal sensors, interactive
@@ -120,8 +120,8 @@ compares every tick hash; CI runs it. Browser input and rendering are not yet te
 Build the libraries before importing their package names from Node:
 
 ```sh
-pnpm --filter @umbra/engine build
-pnpm --filter @umbra/agents build
+pnpm --filter umbra-engine build
+pnpm --filter umbra-agents build
 ```
 
 ## Navigation API
@@ -129,7 +129,7 @@ pnpm --filter @umbra/agents build
 The engine and agent packages export `navBake`, `navPath`, and `navDispose`.
 
 ```ts
-import { navBake, navPath, navDispose, SceneSchema } from "@umbra/engine";
+import { navBake, navPath, navDispose, SceneSchema } from "umbra-engine";
 
 const scene = SceneSchema.parse(sceneJson);
 const { navmeshId, islands } = await navBake(scene);
@@ -156,7 +156,7 @@ proposals, not proof a player can complete a jump.
 ## MCP tools server
 
 ```sh
-pnpm --silent --filter @umbra/agents mcp       # engine tools
+pnpm --silent --filter umbra-agents mcp       # engine tools
 pnpm --silent --filter @umbra/boo-and-co mcp   # the same, plus search.strategy for mansions
 ```
 
@@ -173,7 +173,7 @@ search. `scene.write` only writes `.json` files inside `UMBRA_SCENES_DIR`
 ## Playtester
 
 ```sh
-pnpm --silent --filter @umbra/agents playtest games/lantern/src/level-2.json
+pnpm --silent --filter umbra-agents playtest games/lantern/src/level-2.json
 ```
 
 Prints a JSON report and exits 1 when it finds bugs. Each test goal is checked with
@@ -201,7 +201,7 @@ trivial-skip checks are not implemented yet.
 ## Builder, Fixer and the agent loop
 
 ```sh
-pnpm --silent --filter @umbra/agents haunt "A crypt corridor: jump a gap, then climb a ledge." crypt
+pnpm --silent --filter umbra-agents haunt "A crypt corridor: jump a gap, then climb a ledge." crypt
 pnpm --filter @umbra/lantern dev   # then open http://127.0.0.1:5173/?scene=crypt
 ```
 
@@ -268,11 +268,25 @@ run hashes the same however it is drawn.
 
 | Import | Views |
 | --- | --- |
-| `@umbra/engine` | Canvas 2D: `drawSceneSide` (side view of a kit scene) and `drawGridTop` (top-down tile grid), with `centerView`, `fitView`, `toWorld` |
-| `@umbra/engine/three` | Three.js: `kitSceneView` (blocks, pits, platforms, crates, goals; `update()` per frame) and `gridView` (tile boxes with pickable floors) |
+| `umbra-engine` | Canvas 2D: `drawSceneSide` (side view of a kit scene) and `drawGridTop` (top-down tile grid), with `centerView`, `fitView`, `toWorld` |
+| `umbra-engine/three` | Three.js: `kitSceneView` (blocks, pits, platforms, crates, goals; `update()` per frame) and `gridView` (tile boxes with pickable floors) |
 
 Materials, lights, cameras and characters stay in each game: Lantern adds its lantern
 light and fog, Studio its trail and Fixer outlines, Boo & Co. its ghosts and visitors.
+
+## Packages
+
+`packages/engine` and `packages/agents` are published to npm as
+[`umbra-engine`](packages/engine/README.md) and [`umbra-agents`](packages/agents/README.md);
+the games, Studio and the benchmark are private. Publish with pnpm, which swaps the
+`workspace:^` dependency for the real version (`npm publish` would not):
+
+```sh
+pnpm --filter umbra-engine publish --access public
+pnpm --filter umbra-agents publish --access public
+```
+
+Each runs its build first. `pnpm --filter <name> pack` writes the tarball to check.
 
 ## Layout and current scope
 

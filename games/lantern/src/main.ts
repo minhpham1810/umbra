@@ -1,6 +1,6 @@
 import * as THREE from "three";
-import { kitSceneView } from "@umbra/engine/three";
-import { BUTTON, FIXED_DT, SceneSchema, centerView, createSimulation, drawSceneSide, sideLayout, type Scene, type SideLayout } from "@umbra/engine";
+import { kitSceneView } from "umbra-engine/three";
+import { BUTTON, FIXED_DT, SceneSchema, centerView, createSimulation, drawSceneSide, sideLayout, type Scene, type SideLayout } from "umbra-engine";
 import level1 from "./level.json";
 import level2 from "./level-2.json";
 

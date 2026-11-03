@@ -4,8 +4,8 @@
  */
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { kitSceneView, type KitView } from "@umbra/engine/three";
-import { SceneSchema, createSimulation, type InputFrame, type Scene, type SimEvent } from "@umbra/engine";
+import { kitSceneView, type KitView } from "umbra-engine/three";
+import { SceneSchema, createSimulation, type InputFrame, type Scene, type SimEvent } from "umbra-engine";
 
 const $ = <T extends HTMLElement>(sel: string) => document.querySelector<T>(sel)!;
 const canvas = $<HTMLCanvasElement>("canvas");

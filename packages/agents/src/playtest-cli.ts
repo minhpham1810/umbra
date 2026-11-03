@@ -1,8 +1,8 @@
-// `pnpm --filter @umbra/agents playtest <scene.json>`: prints a JSON playtest report.
+// `pnpm --filter umbra-agents playtest <scene.json>`: prints a JSON playtest report.
 // Uses Gemini to plan when GEMINI_API_KEY is set (model: GEMINI_MODEL), else tests everything.
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { SceneSchema } from "@umbra/engine";
+import { SceneSchema } from "umbra-engine";
 import { DEFAULT_GEMINI_MODEL, geminiGenerate, geminiPlannerWithFallback, loadEnv } from "./gemini.js";
 import { playtest } from "./playtester.js";
 

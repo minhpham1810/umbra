@@ -4,11 +4,11 @@
  * Runs the same scenes and inputs in Node and in headless Chromium and
  * compares every per-tick state hash.
  *
- * Run:  pnpm --filter @umbra/engine browser-hash-check [--with <module.ts>]...
+ * Run:  pnpm --filter umbra-engine browser-hash-check [--with <module.ts>]...
  * A --with module (path from the repo root) exports `cases: { name, run(): number }[]`:
  * each run() is called in both places and must return the same hash. Games use it
  * for their own sims, e.g. games/boo-and-co/src/sim/hash-cases.ts.
- * Needs: pnpm --filter @umbra/engine exec playwright install chromium
+ * Needs: pnpm --filter umbra-engine exec playwright install chromium
  */
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { resolve, join } from "node:path";

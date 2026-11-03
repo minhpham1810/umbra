@@ -2,7 +2,7 @@
  * Boo & Co.'s adapter for the agents' balance search (search.strategy): builds are
  * ghosts and traps on floor tiles, the score is scares, stuck visitors are deadlocks.
  */
-import type { PlanGame } from "@umbra/agents";
+import type { PlanGame } from "umbra-agents";
 import { BUILD_KINDS, MansionSchema, buildCatalog, runMansion, type BuildKind, type Mansion } from "./mansion.js";
 
 export function mansionGame(raw: Mansion): PlanGame<BuildKind> {

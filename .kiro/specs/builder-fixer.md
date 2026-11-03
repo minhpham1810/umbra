@@ -15,7 +15,7 @@ Turn a design brief into a playable Lantern level, and repair Playtester finding
 
 ## Loop
 Builder → Playtester → Fixer per finding → stop when clean or after 5 fix attempts; unresolved findings are returned.
-`pnpm --filter @umbra/agents haunt "<brief>" <out.json>`
+`pnpm --filter umbra-agents haunt "<brief>" <out.json>`
 
 ## Requirements (v2-kiroween)
 - [x] Builder output always passes `scene.validate`.

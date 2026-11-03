@@ -1,5 +1,6 @@
 {
   "name": "@umbra/boo-and-co",
+  "private": true,
   "version": "0.0.1",
   "type": "module",
   "scripts": {
@@ -12,8 +13,8 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.32.1",
-    "@umbra/agents": "workspace:*",
-    "@umbra/engine": "workspace:*",
+    "umbra-agents": "workspace:*",
+    "umbra-engine": "workspace:*",
     "three": "^0.169.0",
     "zod": "^3.23.8"
   },

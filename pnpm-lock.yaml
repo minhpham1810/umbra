@@ -17,35 +17,35 @@ importers:
 
   apps/studio:
     dependencies:
-      '@umbra/engine':
-        specifier: workspace:*
-        version: link:../../packages/engine
       three:
         specifier: ^0.169.0
         version: 0.169.0
+      umbra-engine:
+        specifier: workspace:*
+        version: link:../../packages/engine
     devDependencies:
       '@types/three':
         specifier: ^0.169.0
         version: 0.169.0
-      '@umbra/agents':
-        specifier: workspace:*
-        version: link:../../packages/agents
       tsx:
         specifier: 4.19.2
         version: 4.19.2
       typescript:
         specifier: ^5.6.3
         version: 5.9.3
+      umbra-agents:
+        specifier: workspace:*
+        version: link:../../packages/agents
       vite:
         specifier: ^5.4.10
         version: 5.4.21(@types/node@22.20.5)
 
   benchmark:
     dependencies:
-      '@umbra/agents':
+      umbra-agents:
         specifier: workspace:*
         version: link:../packages/agents
-      '@umbra/engine':
+      umbra-engine:
         specifier: workspace:*
         version: link:../packages/engine
     devDependencies:
@@ -67,15 +67,15 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: 1.32.1
         version: 1.32.1(supports-color@7.2.0)(zod@3.25.76)
-      '@umbra/agents':
-        specifier: workspace:*
-        version: link:../../packages/agents
-      '@umbra/engine':
-        specifier: workspace:*
-        version: link:../../packages/engine
       three:
         specifier: ^0.169.0
         version: 0.169.0
+      umbra-agents:
+        specifier: workspace:*
+        version: link:../../packages/agents
+      umbra-engine:
+        specifier: workspace:*
+        version: link:../../packages/engine
       zod:
         specifier: ^3.23.8
         version: 3.25.76
@@ -104,12 +104,12 @@ importers:
 
   games/lantern:
     dependencies:
-      '@umbra/engine':
-        specifier: workspace:*
-        version: link:../../packages/engine
       three:
         specifier: ^0.169.0
         version: 0.169.0
+      umbra-engine:
+        specifier: workspace:*
+        version: link:../../packages/engine
     devDependencies:
       '@types/three':
         specifier: ^0.169.0
@@ -129,8 +129,8 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: 1.32.1
         version: 1.32.1(supports-color@7.2.0)(zod@3.25.76)
-      '@umbra/engine':
-        specifier: workspace:*
+      umbra-engine:
+        specifier: workspace:^
         version: link:../engine
       zod:
         specifier: ^3.23.8

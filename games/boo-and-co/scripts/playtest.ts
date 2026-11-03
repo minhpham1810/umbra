@@ -2,7 +2,7 @@
 // Exits 1 when it finds a balance bug. Defaults to the shipped mansion.
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { playtestBalance, strategySummary } from "@umbra/agents";
+import { playtestBalance, strategySummary } from "umbra-agents";
 import { mansionGame } from "../src/sim/balance.js";
 import { MansionSchema } from "../src/sim/mansion.js";
 

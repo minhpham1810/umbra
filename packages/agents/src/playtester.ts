@@ -3,7 +3,7 @@
  * The LLM only plans; the navmesh proposes routes and the simulation decides.
  */
 import { z } from "zod";
-import type { InputFrame, Scene } from "@umbra/engine";
+import type { InputFrame, Scene } from "umbra-engine";
 import { replaySave, searchTarget, type Point } from "./tools/api.js";
 
 /** fall_through: an unmarked hole inside the level; out_of_bounds: an escape over its edge. */
