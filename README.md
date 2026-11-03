@@ -41,9 +41,11 @@ games run on the same engine: **Lantern**, a dark third-person platformer, and
   run twice and compares Node against headless Chromium.
 - **Headless first.** The simulation runs in Node with Rapier's WebAssembly build, so
   agents never need a browser.
-- **Scenes as data.** Levels are small JSON files of kit pieces on a 1 m grid (floor,
-  wall, pit, moving platform, crate), validated with Zod, so agents edit structure,
-  not geometry.
+- **Generic core.** Entities, components with schemas, systems in ordered phases,
+  seeded randomness, events, checkpoints, replays and scene files: any game's rules are
+  plain systems, and optional modules (physics, navigation, rendering) plug in.
+- **Levels as data.** Scene files list entities and prefabs as JSON, checked by each
+  component's schema, so agents edit structure, not code.
 - **Agent tools.** Route search, navmesh queries, structured observations, replays,
   and a Playtester, Builder and Fixer, all exposed through an MCP server.
 - **Measured, not claimed.** On a benchmark of 96 levels with planted bugs, the
@@ -63,7 +65,51 @@ Requires Node.js 20 or later. Both packages are ES modules with TypeScript types
 
 ## Quick start
 
-Run a level headlessly and check the result:
+### Define a game
+
+A game is components (plain data with a schema), a per-tick input, a setup and a list of
+systems. The engine runs one fixed tick per input and hashes the whole state after each.
+
+```ts
+import { defineComponent, defineGame, runGame, z } from "umbra-engine";
+
+const Position = defineComponent("position", z.number().int());
+const Speed = defineComponent("speed", z.number().int().min(1));
+
+// A race: runners start at random speeds; each tick's input may boost one of them.
+const race = defineGame({
+  name: "race",
+  input: z.number().int().min(0).nullable(),            // which runner to boost, or null
+  level: z.object({ runners: z.number().int().min(2), finish: z.number().int() }),
+  components: [Position, Speed],
+  setup(world, level) {
+    for (let i = 0; i < level.runners; i++) world.spawn(Position(0), Speed(1 + world.rng.int(3)));
+  },
+  systems: [
+    function boost(world, pick) {
+      const runner = pick === null ? undefined : world.entities()[pick];
+      if (runner !== undefined) world.set(runner, Speed, world.get(runner, Speed)! + 1);
+    },
+    function move(world) {
+      for (const [runner, x, speed] of world.query(Position, Speed)) world.set(runner, Position, x + speed);
+    },
+  ],
+  outcome: (world, level) => ([...world.query(Position)].some(([, x]) => x >= level.finish) ? "finished" : undefined),
+});
+
+const result = await runGame(race, { runners: 3, finish: 30 }, { seed: 7, inputs: [0, null, 0, null, 0, null, 0, null, 0, null] });
+console.log(result.outcome, result.ticks, result.finalStateHash); // the same on every machine
+```
+
+`createGame` gives a run you step yourself, with `save()` and `load()` checkpoints for
+branching searches; `recordReplay` and `verifyReplay` save a run and prove it reproduces;
+`spawnScene` loads a level file of entities and prefabs. A complete example game is in
+[`packages/engine/examples/snake`](packages/engine/examples/snake).
+
+### Kit-scene platformer runtime
+
+The engine also ships the 3D platformer runtime that Lantern uses (to be rebuilt on the
+core as optional physics and character modules). Run a level headlessly:
 
 ```ts
 import { BUTTON, SceneSchema, runSim } from "umbra-engine";
@@ -336,7 +382,7 @@ pnpm typecheck
 pnpm --filter umbra-engine determinism-check     # every scene and saved replay, run twice
 pnpm --filter umbra-engine validate-scenes
 pnpm --filter umbra-engine exec playwright install chromium   # once
-pnpm --filter umbra-engine browser-hash-check --with games/boo-and-co/src/sim/hash-cases.ts
+pnpm --filter umbra-engine browser-hash-check --with packages/engine/examples/hash-cases.ts --with games/boo-and-co/src/sim/hash-cases.ts
 ```
 
 ### Publishing
