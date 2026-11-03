@@ -1,0 +1,17 @@
+{
+  "name": "umbra",
+  "private": true,
+  "version": "0.0.1",
+  "description": "TypeScript 3D game engine for AI agents — deterministic, headless, replayable.",
+  "scripts": {
+    "dev": "pnpm --recursive run dev",
+    "build": "pnpm --recursive run build",
+    "test": "pnpm --recursive run test",
+    "lint": "eslint . --max-warnings 0",
+    "typecheck": "pnpm --recursive run typecheck"
+  },
+  "engines": {
+    "node": ">=20",
+    "pnpm": ">=9"
+  }
+}
