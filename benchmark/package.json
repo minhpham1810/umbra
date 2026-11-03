@@ -1,7 +1,7 @@
 {
   "name": "@umbra/benchmark",
-  "version": "0.0.1",
   "private": true,
+  "version": "0.0.1",
   "type": "module",
   "scripts": {
     "levels": "tsx scripts/make-levels.ts",
@@ -10,8 +10,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@umbra/agents": "workspace:*",
-    "@umbra/engine": "workspace:*"
+    "umbra-agents": "workspace:*",
+    "umbra-engine": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

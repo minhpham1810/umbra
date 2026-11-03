@@ -1,7 +1,8 @@
 # Umbra
 
 A TypeScript 3D engine for games and headless agent runs. Rapier owns physics;
-the games draw with Three.js, or with the engine's Canvas 2D views (`?view=2d`).
+the engine's Three.js views (`umbra-engine/three`, Three.js as an optional peer
+dependency) or its Canvas 2D views (`?view=2d`) draw the games.
 Browser play and `runSim` use the same fixed 60 Hz loop.
 
 ## Run Lantern
@@ -53,7 +54,7 @@ flee back to the entrance, and in a one-wide hallway they can jam against new
 arrivals; the HUD counts stuck visitors. `?view=2d` draws the mansion with the
 engine's flat top-down Canvas 2D view instead of Three.js; clicks build the same way.
 
-The simulation (`packages/engine/src/mansion`) is integer-only on a grid with one
+The simulation (`games/boo-and-co/src/sim`) is integer-only on a grid with one
 visitor per cell, instead of the navmesh crowds in the design, so it is
 deterministic in every browser. The mansion is `games/boo-and-co/src/mansion.json`.
 Its quota (140) needs both build kinds: the strategy search's best ghost-only and
@@ -62,17 +63,20 @@ trap-only plans reach about 113 scares, mixed plans about 160.
 ### Balance playtest
 
 ```sh
-pnpm --silent --filter @umbra/agents playtest games/boo-and-co/src/mansion.json
+pnpm --silent --filter @umbra/boo-and-co playtest [mansion.json]
 ```
 
-For a mansion file, the Playtester runs `searchStrategy` (also the `search.strategy`
-MCP tool): about 600 simulated days across ghost-only, trap-only and mixed plans,
+The agents' balance search (`searchStrategy` in `packages/agents/src/strategy.ts`) works
+on any build-placement game through a small `PlanGame` adapter: build kinds and costs,
+the cells builds may go on, the budget and quota, and a deterministic `run(plan)`. Boo &
+Co.'s adapter is `games/boo-and-co/src/sim/balance.ts`. For a mansion (the shipped one by
+default) it runs about 600 simulated days across ghost-only, trap-only and mixed plans,
 random restarts then hill climbing, with a fixed seed. It reports:
 
 | Bug type | Meaning |
 | --- | --- |
 | `unwinnable_quota` | No plan found reaches the quota |
-| `dominant_strategy` | A single-kind plan beats every plan using the other kind by over 10% |
+| `dominant_strategy` | A single-kind plan beats every plan using another kind by over 10% |
 | `crowd_deadlock` | A plan leaves visitors stuck at the end of the day |
 
 Each finding carries the build plan that shows it; the mansion plus the plan replay
@@ -96,14 +100,14 @@ size warning. No model API, credentials, or backend server is required.
 
 ```sh
 pnpm test
-pnpm --filter @umbra/engine typecheck
-pnpm --filter @umbra/agents typecheck
+pnpm --filter umbra-engine typecheck
+pnpm --filter umbra-agents typecheck
 pnpm --filter @umbra/lantern typecheck
-pnpm --filter @umbra/engine determinism-check
+pnpm --filter umbra-engine determinism-check
 pnpm lint                                        # determinism rules on engine sim code
-pnpm --filter @umbra/engine validate-scenes
-pnpm --filter @umbra/engine exec playwright install chromium   # once
-pnpm --filter @umbra/engine browser-hash-check
+pnpm --filter umbra-engine validate-scenes
+pnpm --filter umbra-engine exec playwright install chromium   # once
+pnpm --filter umbra-engine browser-hash-check
 ```
 
 Tests cover schema validation, deterministic replays, goal sensors, interactive
@@ -116,8 +120,8 @@ compares every tick hash; CI runs it. Browser input and rendering are not yet te
 Build the libraries before importing their package names from Node:
 
 ```sh
-pnpm --filter @umbra/engine build
-pnpm --filter @umbra/agents build
+pnpm --filter umbra-engine build
+pnpm --filter umbra-agents build
 ```
 
 ## Navigation API
@@ -125,7 +129,7 @@ pnpm --filter @umbra/agents build
 The engine and agent packages export `navBake`, `navPath`, and `navDispose`.
 
 ```ts
-import { navBake, navPath, navDispose, SceneSchema } from "@umbra/engine";
+import { navBake, navPath, navDispose, SceneSchema } from "umbra-engine";
 
 const scene = SceneSchema.parse(sceneJson);
 const { navmeshId, islands } = await navBake(scene);
@@ -152,12 +156,15 @@ proposals, not proof a player can complete a jump.
 ## MCP tools server
 
 ```sh
-pnpm --silent --filter @umbra/agents mcp
+pnpm --silent --filter umbra-agents mcp       # engine tools
+pnpm --silent --filter @umbra/boo-and-co mcp   # the same, plus search.strategy for mansions
 ```
 
 Serves the agent tools over stdio: `scene.validate`, `scene.write`, `nav.bake`,
-`nav.path`, `sim.run`, `sim.observe`, `search.reach`, `replay.save`. Kiro picks it
-up from `.kiro/settings/mcp.json`. Any MCP client can launch the same command.
+`nav.path`, `sim.run`, `sim.observe`, `search.reach`, `replay.save`. A game adds
+`search.strategy` by passing its `PlanGame` adapter: `createServer({ strategy })`.
+Kiro picks up the Boo & Co. server (all nine tools) from `.kiro/settings/mcp.json`.
+Any MCP client can launch the same command.
 Inputs are Zod-validated and capped at 18,000 ticks per run and 2,000 sim runs per
 search. `scene.write` only writes `.json` files inside `UMBRA_SCENES_DIR`
 (default: the working directory); replays go to `UMBRA_REPLAYS_DIR` (default
@@ -166,7 +173,7 @@ search. `scene.write` only writes `.json` files inside `UMBRA_SCENES_DIR`
 ## Playtester
 
 ```sh
-pnpm --silent --filter @umbra/agents playtest games/lantern/src/level-2.json
+pnpm --silent --filter umbra-agents playtest games/lantern/src/level-2.json
 ```
 
 Prints a JSON report and exits 1 when it finds bugs. Each test goal is checked with
@@ -194,7 +201,7 @@ trivial-skip checks are not implemented yet.
 ## Builder, Fixer and the agent loop
 
 ```sh
-pnpm --silent --filter @umbra/agents haunt "A crypt corridor: jump a gap, then climb a ledge." crypt
+pnpm --silent --filter umbra-agents haunt "A crypt corridor: jump a gap, then climb a ledge." crypt
 pnpm --filter @umbra/lantern dev   # then open http://127.0.0.1:5173/?scene=crypt
 ```
 
@@ -254,11 +261,38 @@ pnpm --filter @umbra/benchmark bench
 | Random input, 300 runs | 65/80 | 16/16 | 33.3 s |
 | Navmesh path only | 48/80 | 16/16 | 0.0 s |
 
+## Rendering
+
+The engine draws but never owns a game's look; every view only reads sim state, so a
+run hashes the same however it is drawn.
+
+| Import | Views |
+| --- | --- |
+| `umbra-engine` | Canvas 2D: `drawSceneSide` (side view of a kit scene) and `drawGridTop` (top-down tile grid), with `centerView`, `fitView`, `toWorld` |
+| `umbra-engine/three` | Three.js: `kitSceneView` (blocks, pits, platforms, crates, goals; `update()` per frame) and `gridView` (tile boxes with pickable floors) |
+
+Materials, lights, cameras and characters stay in each game: Lantern adds its lantern
+light and fog, Studio its trail and Fixer outlines, Boo & Co. its ghosts and visitors.
+
+## Packages
+
+`packages/engine` and `packages/agents` are published to npm as
+[`umbra-engine`](packages/engine/README.md) and [`umbra-agents`](packages/agents/README.md);
+the games, Studio and the benchmark are private. Publish with pnpm, which swaps the
+`workspace:^` dependency for the real version (`npm publish` would not):
+
+```sh
+pnpm --filter umbra-engine publish --access public
+pnpm --filter umbra-agents publish --access public
+```
+
+Each runs its build first. `pnpm --filter <name> pack` writes the tarball to check.
+
 ## Layout and current scope
 
 | Path | Purpose |
 | --- | --- |
-| `packages/engine` | Physics, scene schema, replay loop, hashing, navigation, Canvas 2D views |
+| `packages/engine` | Physics, scene schema, replay loop, hashing, navigation, 2D and Three.js views |
 | `packages/agents` | Typed scene, simulation, replay, and navigation tools |
 | `games/lantern` | Playable Three.js level |
 | `games/boo-and-co` | Playable haunted-mansion management sim |
@@ -275,6 +309,9 @@ axis (`props: { axis, distance, speed }`, validated by the scene schema) on a
 tick-based path and carry the player standing on them. The carry is not
 collision-checked, so keep walls off platform paths. Navmesh bakes exclude
 platforms, and `searchReach` does not wait for them.
+Crates (`crate`) are dynamic 0.9 m boxes with locked rotation: walking into one pushes
+it, and the player can stand on it. Navmesh bakes and `searchReach` ignore crates.
+Lantern level 1 has one beside the spawn.
 All goal kinds currently behave as collectable sensors, and reaching every goal
 wins. Keys, doors, and hazards do not yet have separate rules. The seed argument
 is retained for replays but the simulation currently has no random systems.

@@ -2,8 +2,8 @@
  * Detectors compared on the benchmark. Each takes a scene and returns findings in the
  * Playtester's shape, so one scorer covers all three.
  */
-import { BUTTON, navBake, navDispose, navPath, runSim, type InputFrame, type Scene } from "@umbra/engine";
-import { playtest, type BugType } from "@umbra/agents";
+import { BUTTON, navBake, navDispose, navPath, runSim, type InputFrame, type Scene } from "umbra-engine";
+import { playtest, type BugType } from "umbra-agents";
 import { lcg, type Truth } from "./levels.js";
 
 export interface Found { type: BugType; goalId?: string; cell: { x: number; z: number } }

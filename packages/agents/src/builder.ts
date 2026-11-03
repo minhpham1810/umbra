@@ -4,7 +4,7 @@
  * pieces and closes the level with a two-high wall ring. Errors go back to the model.
  */
 import { z } from "zod";
-import { validateScene, type KitPiece, type Scene } from "@umbra/engine";
+import { validateScene, type KitPiece, type Scene } from "umbra-engine";
 import { parseJson, type Generate } from "./gemini.js";
 
 const coord = z.number().int().min(-48).max(48);

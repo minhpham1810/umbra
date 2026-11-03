@@ -1,29 +1,77 @@
 {
-  "name": "@umbra/engine",
-  "version": "0.0.1",
-  "type": "module",
-  "exports": {
-    ".": "./dist/index.js"
+  "name": "umbra-engine",
+  "version": "0.1.0",
+  "description": "Deterministic, headless 3D game engine for AI agents: Rapier physics, replayable runs, per-tick state hashes, navmesh, 2D and Three.js views.",
+  "keywords": [
+    "game-engine",
+    "deterministic",
+    "rapier",
+    "replay",
+    "headless",
+    "ai-agents",
+    "three"
+  ],
+  "license": "MIT",
+  "author": "Minh Pham",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/minhpham1810/umbra.git"
   },
+  "homepage": "https://github.com/minhpham1810/umbra#readme",
+  "bugs": "https://github.com/minhpham1810/umbra/issues",
+  "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./three": {
+      "types": "./dist/three.d.ts",
+      "import": "./dist/three.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
-    "build": "tsup src/index.ts --format esm --dts",
-    "dev": "tsup src/index.ts --format esm --dts --watch",
+    "build": "tsup --entry.index src/index.ts --entry.three src/render3d/three.ts --format esm --dts",
+    "dev": "tsup --entry.index src/index.ts --entry.three src/render3d/three.ts --format esm --dts --watch",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "determinism-check": "tsx scripts/determinism-check.ts",
     "validate-scenes": "tsx scripts/validate-scenes.ts",
-    "browser-hash-check": "tsx scripts/browser-hash-check.ts"
+    "browser-hash-check": "tsx scripts/browser-hash-check.ts",
+    "prepublishOnly": "pnpm run build"
   },
   "dependencies": {
     "@dimforge/rapier3d-compat": "0.12.0",
     "recast-navigation": "0.43.1",
     "zod": "^3.23.8"
   },
+  "peerDependencies": {
+    "three": ">=0.160.0"
+  },
+  "peerDependenciesMeta": {
+    "three": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "@types/three": "^0.169.0",
     "esbuild": "0.21.5",
     "fast-check": "^3.22.0",
     "playwright": "1.56.1",
+    "three": "^0.169.0",
     "tsup": "^8.3.5",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3",

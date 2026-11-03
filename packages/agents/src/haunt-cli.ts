@@ -1,4 +1,4 @@
-// `pnpm --filter @umbra/agents haunt "<brief>" <out.json | name>`: build a level from a brief,
+// `pnpm --filter umbra-agents haunt "<brief>" <out.json | name>`: build a level from a brief,
 // playtest it, fix what is found, and write the scene. Needs GEMINI_API_KEY (.env works).
 // A bare name writes games/lantern/public/levels/<name>.json, playable at Lantern's ?scene=<name>.
 import { mkdir, writeFile } from "node:fs/promises";

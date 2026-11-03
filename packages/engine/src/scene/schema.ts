@@ -8,6 +8,8 @@ export const KitPieceKindSchema = z.enum([
   "ramp",
   "pit",
   "moving_platform",
+  /** A dynamic box (0.9 m) the player can push and stand on. */
+  "crate",
 ]);
 
 export const Vec3Schema = z.object({ x: z.number(), y: z.number(), z: z.number() });

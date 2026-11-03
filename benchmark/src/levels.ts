@@ -6,8 +6,8 @@
  * Physics limits the mutations rely on (runner.ts): walk 5 m/s, jump impulse 8 m/s,
  * gravity 20 m/s² → peak 1.6 m, about 4 m of air travel.
  */
-import { compileBlueprint, type Blueprint } from "@umbra/agents";
-import type { KitPiece, Scene } from "@umbra/engine";
+import { compileBlueprint, type Blueprint } from "umbra-agents";
+import type { KitPiece, Scene } from "umbra-engine";
 
 export type Section =
   | { kind: "flat"; len: number }

@@ -13,8 +13,11 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "paths": {
-      "@umbra/engine": [
+      "umbra-engine": [
         "../../packages/engine/src/index.ts"
+      ],
+      "umbra-engine/three": [
+        "../../packages/engine/src/render3d/three.ts"
       ]
     }
   },

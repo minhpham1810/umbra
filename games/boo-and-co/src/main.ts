@@ -1,11 +1,13 @@
 /**
  * Boo & Co.: run a haunted mansion. Place ghosts and traps to hit the scare quota
- * before the day ends. The simulation is the engine's deterministic mansion sim;
- * this file only draws it and turns clicks into placements.
+ * before the day ends. The simulation is the deterministic mansion sim in ./sim;
+ * this file only draws it (Three.js, or the engine's 2D grid view) and turns clicks into placements.
  */
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { MansionSchema, buildCatalog, createMansion, drawMansionTop, fitView, toWorld, type BuildKind } from "@umbra/engine";
+import { drawGridTop, fitView, toWorld, type GridMarker } from "umbra-engine";
+import { gridView } from "umbra-engine/three";
+import { MansionSchema, buildCatalog, createMansion, type BuildKind } from "./sim/mansion.js";
 import rawMansion from "./mansion.json";
 
 const mansion = MansionSchema.parse(rawMansion);
@@ -43,26 +45,16 @@ function threeView(): View {
   Object.assign(sun.shadow.camera, { left: -16, right: 16, top: 16, bottom: -16 });
   scene.add(sun);
 
-  const W = mansion.tiles[0]!.length, H = mansion.tiles.length;
-  const cx = (x: number) => x - W / 2 + 0.5, cz = (y: number) => y - H / 2 + 0.5;
-  const box = new THREE.BoxGeometry(1, 1, 1);
-  const tileMat = {
-    ".": new THREE.MeshStandardMaterial({ color: 0xfff3e4, roughness: 0.9 }),
-    "#": new THREE.MeshStandardMaterial({ color: 0xc9b3e6, roughness: 0.8 }),
-    E: new THREE.MeshStandardMaterial({ color: 0xa8e6cf, roughness: 0.8 }),
-    X: new THREE.MeshStandardMaterial({ color: 0xffd38a, roughness: 0.8 }),
-  };
-  const floorTiles: THREE.Mesh[] = [];
-  mansion.tiles.forEach((row, y) => [...row].forEach((c, x) => {
-    const mesh = new THREE.Mesh(box, tileMat[c as keyof typeof tileMat]);
-    const wall = c === "#";
-    mesh.scale.set(1, wall ? 1.2 : 0.2, 1);
-    mesh.position.set(cx(x), wall ? 0.6 : -0.1, cz(y));
-    mesh.castShadow = wall; mesh.receiveShadow = true;
-    mesh.userData = { x, y, tile: c };
-    if (!wall) floorTiles.push(mesh);
-    scene.add(mesh);
-  }));
+  const tile = (color: number, roughness = 0.8) => new THREE.MeshStandardMaterial({ color, roughness });
+  const grid = gridView(mansion.tiles, {
+    ".": { material: tile(0xfff3e4, 0.9), top: 0, pickable: true },
+    "#": { material: tile(0xc9b3e6), top: 1.2, bottom: 0 },
+    E: { material: tile(0xa8e6cf), top: 0, pickable: true },
+    X: { material: tile(0xffd38a), top: 0, pickable: true },
+  }, { shadows: true });
+  scene.add(grid.group);
+  const floorTiles = grid.pickable;
+  const cx = (x: number) => grid.at(x, 0).x, cz = (y: number) => grid.at(0, y).z;
   camera.position.set(0, 18, 11);
   controls.target.set(0, 0, 0);
 
@@ -147,6 +139,7 @@ function canvasView(): View {
   const W = mansion.tiles[0]!.length, H = mansion.tiles.length;
   const size = { w: 0, h: 0 };
   const shown = new Map<number, { x: number; y: number }>();
+  const grid = { tiles: mansion.tiles, background: "#fbe9e1", colors: { ".": "#fff3e4", "#": "#c9b3e6", E: "#a8e6cf", X: "#ffd38a" } };
   let hovered: Cell | undefined;
   const view = () => fitView(size.w, size.h, W, H, 24);
   return {
@@ -167,9 +160,14 @@ function canvasView(): View {
         return { ...v, ...p };
       });
       for (const id of shown.keys()) if (!sim.visitors.some((v) => v.id === id)) shown.delete(id);
+      const markers: GridMarker[] = [
+        ...sim.builds.map((b) => b.kind === "trap" ? { x: b.x, y: b.y, radius: 0.34, fill: "#ef7b8c" }
+          : { x: b.x, y: b.y, radius: 0.32, fill: "#ffffff", ring: "#8f7ae6" }),
+        ...visitors.map((v) => ({ x: v.x, y: v.y, radius: 0.22, fill: v.fleeing ? "#ff9fb2" : v.fear > 0 ? "#b9a7f0" : "#7ec8e3" })),
+      ];
       ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
-      drawMansionTop(ctx, size, mansion, { visitors, builds: sim.builds,
-        ...(hovered ? { hover: { x: hovered.x, y: hovered.y, range: CATALOG[tool].range } } : {}) }, view());
+      drawGridTop(ctx, size, grid, { markers,
+        ...(hovered ? { hover: { x: hovered.x, y: hovered.y, range: CATALOG[tool].range, color: "#8f7ae6" } } : {}) }, view());
     },
     resize() {
       size.w = innerWidth; size.h = innerHeight;

@@ -2,11 +2,11 @@
  * Agent tool API — the typed surface agents (and Kiro) call.
  * Each function here is served as an MCP tool by src/mcp.ts.
  */
-import { validateScene, type Scene } from "@umbra/engine";
-import { runSim, createSimulation, navBake, navPath, navDispose, BUTTON, IDLE_FRAME, MovingPlatformPropsSchema, PLATFORM_HALF_Y, type RunResult } from "@umbra/engine";
-import type { InputFrame } from "@umbra/engine";
+import { validateScene, type Scene } from "umbra-engine";
+import { runSim, createSimulation, navBake, navPath, navDispose, BUTTON, IDLE_FRAME, MovingPlatformPropsSchema, PLATFORM_HALF_Y, type RunResult } from "umbra-engine";
+import type { InputFrame } from "umbra-engine";
 import { randomUUID } from "node:crypto";
-import type { Replay, SimEvent } from "@umbra/engine";
+import type { Replay, SimEvent } from "umbra-engine";
 
 // ── scene tools ──────────────────────────────────────────────────────────────
 
@@ -183,7 +183,7 @@ export async function searchTarget(scene: Scene, approach: Point, target: Point,
   // Walking surface height per column (top of its highest solid block).
   const ground = new Map<string, number>();
   for (const p of scene.pieces) {
-    if (p.kind === "pit" || p.kind === "moving_platform") continue;
+    if (p.kind === "pit" || p.kind === "moving_platform" || p.kind === "crate") continue;
     const k = `${p.pos.x},${p.pos.z}`;
     ground.set(k, Math.max(ground.get(k) ?? -Infinity, p.pos.y + 1));
   }
@@ -268,5 +268,5 @@ export async function searchReach(scene: Scene, goalId: string, budget: number):
   return { reached, inputs, attempts };
 }
 
-export { navBake, navPath, navDispose } from "@umbra/engine";
-export type { NavBakeResult, NavPathResult, NavIsland } from "@umbra/engine";
+export { navBake, navPath, navDispose } from "umbra-engine";
+export type { NavBakeResult, NavPathResult, NavIsland } from "umbra-engine";

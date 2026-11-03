@@ -4,8 +4,11 @@
  * Runs the same scenes and inputs in Node and in headless Chromium and
  * compares every per-tick state hash.
  *
- * Run:  pnpm --filter @umbra/engine browser-hash-check
- * Needs: pnpm --filter @umbra/engine exec playwright install chromium
+ * Run:  pnpm --filter umbra-engine browser-hash-check [--with <module.ts>]...
+ * A --with module (path from the repo root) exports `cases: { name, run(): number }[]`:
+ * each run() is called in both places and must return the same hash. Games use it
+ * for their own sims, e.g. games/boo-and-co/src/sim/hash-cases.ts.
+ * Needs: pnpm --filter umbra-engine exec playwright install chromium
  */
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { resolve, join } from "node:path";
@@ -14,7 +17,6 @@ import { chromium } from "playwright";
 import { runSim } from "../src/sim/runner.js";
 import { SceneSchema, type Scene } from "../src/scene/schema.js";
 import type { InputFrame } from "../src/input/types.js";
-import { MansionSchema, runMansion, type PlacementInput } from "../src/mansion/mansion.js";
 
 const ENGINE = resolve(import.meta.dirname, "..");
 const REPO_ROOT = resolve(ENGINE, "../..");
@@ -35,9 +37,14 @@ for (const dir of ["games/lantern/src", "benchmark/levels/clean", "benchmark/lev
 }
 const cases = scenes.flatMap(([name, scene]) => [1, 2, 3].map((seed) => ({ name: `${name}#${seed}`, scene, seed, inputs: inputs(seed) })));
 
+const extras = process.argv.flatMap((a, i) => (process.argv[i - 1] === "--with" ? [resolve(REPO_ROOT, a)] : []));
+const extraCases: { name: string; run(): number }[] = [];
+for (const file of extras) extraCases.push(...((await import(file)) as { cases: typeof extraCases }).cases);
+
 const bundle = await build({
-  stdin: { contents: `export { runSim } from "./src/sim/runner.ts";\nexport { runMansion } from "./src/mansion/mansion.ts";`, resolveDir: ENGINE, loader: "ts" },
-  bundle: true, format: "iife", globalName: "Umbra", platform: "browser", write: false,
+  stdin: { contents: `export { runSim } from "./src/sim/runner.ts";\n` +
+    `export const extras = [${extras.map((f) => `import(${JSON.stringify(f)})`).join(", ")}];`, resolveDir: ENGINE, loader: "ts" },
+  bundle: true, format: "iife", globalName: "Umbra", platform: "browser", write: false, loader: { ".json": "json" },
 });
 
 const browser = await chromium.launch();
@@ -54,16 +61,17 @@ try {
     return out;
   }, cases);
 
-  // Boo & Co.: the mansion sim with a fixed build plan, compared the same way.
-  const mansion = MansionSchema.parse(JSON.parse(readFileSync(join(REPO_ROOT, "games/boo-and-co/src/mansion.json"), "utf8")));
-  const plan: PlacementInput[] = [{ kind: "ghost", x: 4, y: 3 }, { kind: "trap", x: 11, y: 5 }, { kind: "ghost", x: 18, y: 7, tick: 900 }];
-  const webMansion = await page.evaluate(({ m, p }) => {
+  // --with modules: each case's run() in the browser, then in Node.
+  const webExtras = await page.evaluate(async () => {
     // @ts-expect-error Umbra is the IIFE global from the bundle
-    return globalThis.Umbra.runMansion(m, p).finalStateHash as number;
-  }, { m: mansion, p: plan });
-  const nodeMansion = runMansion(mansion, plan).finalStateHash;
-  if (webMansion !== nodeMansion) { console.error(`DIVERGED boo-and-co mansion: node=${nodeMansion} browser=${webMansion}`); failed++; }
-  else console.log(`OK       boo-and-co/mansion.json  ${mansion.durationTicks} ticks  hash=${nodeMansion}`);
+    const mods = await Promise.all(globalThis.Umbra.extras) as { cases: { run(): number }[] }[];
+    return mods.flatMap((m) => m.cases.map((c) => c.run()));
+  });
+  for (const [i, c] of extraCases.entries()) {
+    const node = c.run();
+    if (webExtras[i] !== node) { console.error(`DIVERGED ${c.name}: node=${node} browser=${webExtras[i]}`); failed++; }
+    else console.log(`OK       ${c.name}  hash=${node}`);
+  }
 
   for (const [i, c] of cases.entries()) {
     const node = (await runSim({ ...c, maxTicks: c.inputs.length })).tickHashes;
@@ -76,6 +84,6 @@ try {
   }
 } finally { await browser.close(); }
 
-const total = cases.length + 1; // + the mansion
+const total = cases.length + extraCases.length;
 console.log(`\n${total - failed} passed, ${failed} failed`);
 if (failed > 0) process.exit(1);

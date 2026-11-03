@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { holeCandidates } from "@umbra/agents";
+import { holeCandidates } from "umbra-agents";
 import { matches } from "./detectors.js";
 import { MUTATIONS, cleanLevel, lcg, mutate, randomSpec, truthOf } from "./levels.js";
 

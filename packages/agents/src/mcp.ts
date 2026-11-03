@@ -4,8 +4,8 @@
  */
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { MansionSchema, SceneSchema, Vec3Schema } from "@umbra/engine";
-import { searchStrategy } from "./strategy.js";
+import { SceneSchema, Vec3Schema } from "umbra-engine";
+import { searchStrategy, strategySummary, type PlanGame } from "./strategy.js";
 import {
   sceneValidate, sceneWrite, simRun, simObserve, searchReach, replaySave, navBake, navPath,
 } from "./tools/api.js";
@@ -25,8 +25,12 @@ const run = {
 
 const json = (value: unknown) => ({ content: [{ type: "text" as const, text: JSON.stringify(value) }] });
 
-export function createServer(): McpServer {
-  const server = new McpServer({ name: "umbra", version: "0.0.1" });
+/** A build-placement game for search.strategy: how to validate its level files, and its adapter. */
+export interface StrategyGame<T> { name: string; schema: z.ZodType<T>; adapt(level: T): PlanGame }
+
+/** The Umbra tools. Pass `strategy` to also serve search.strategy for that game. */
+export function createServer<T>(opts: { strategy?: StrategyGame<T> } = {}): McpServer {
+  const server = new McpServer({ name: "umbra", version: "0.1.0" });
 
   server.registerTool("scene.validate", {
     description: "Check a scene against the schema. Returns {ok, errors[]}.",
@@ -73,16 +77,14 @@ export function createServer(): McpServer {
     inputSchema: { scene: SceneSchema, goal: z.string(), budget: z.number().int().min(1).max(MAX_BUDGET) },
   }, async ({ scene, goal, budget }) => json(await searchReach(scene, goal, budget)));
 
-  server.registerTool("search.strategy", {
-    description: "Search Boo & Co. build plans for a mansion. budget = sim runs. Returns {quotaReachable, bestPlan, bestByPool, dominantStrategies, deadlocks}.",
-    inputSchema: { mansion: MansionSchema, budget: z.number().int().min(3).max(MAX_BUDGET) },
-  }, ({ mansion, budget }) => {
-    const s = searchStrategy(mansion, { budget });
-    const brief = (p: { plan: unknown; scares: number; deadlocked: number }) => ({ plan: p.plan, scares: p.scares, deadlocked: p.deadlocked });
-    return json({ quotaReachable: s.quotaReachable, bestPlan: brief(s.best),
-      bestByPool: { ghost: brief(s.bestByPool.ghost), trap: brief(s.bestByPool.trap), mixed: brief(s.bestByPool.mixed) },
-      dominantStrategies: s.dominantStrategies, deadlocks: s.deadlocks.map(brief), runs: s.runs });
-  });
+  const game = opts.strategy;
+  if (game) {
+    // Cast: the SDK's input-shape typing does not accept a generic Zod type here.
+    server.registerTool("search.strategy", {
+      description: `Search ${game.name} build plans for a level. budget = sim runs. Returns {quotaReachable, bestPlan, bestByPool, dominantStrategies, deadlocks}.`,
+      inputSchema: { level: game.schema as z.ZodTypeAny, budget: z.number().int().min(3).max(MAX_BUDGET) },
+    }, ({ level, budget }) => json(strategySummary(searchStrategy(game.adapt(level as T), { budget }))));
+  }
 
   server.registerTool("replay.save", {
     description: "Run and save a replay under UMBRA_REPLAYS_DIR. Returns {replayId}.",

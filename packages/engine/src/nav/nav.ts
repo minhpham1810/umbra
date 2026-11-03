@@ -17,7 +17,7 @@ export async function navBake(raw: Scene): Promise<NavBakeResult> {
   const indices: number[] = [];
   for (const piece of [...scene.pieces].sort((a, b) =>
     a.pos.x - b.pos.x || a.pos.y - b.pos.y || a.pos.z - b.pos.z)) {
-    if (piece.kind === "pit" || piece.kind === "moving_platform") continue;
+    if (piece.kind === "pit" || piece.kind === "moving_platform" || piece.kind === "crate") continue;
     // Match Rapier's current cuboids, including its placeholder ramps/stairs.
     const base = positions.length / 3;
     const { x, y, z } = piece.pos;

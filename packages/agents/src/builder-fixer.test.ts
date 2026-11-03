@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { expect, it } from "vitest";
-import { SceneSchema, runSim, type Replay, type Scene } from "@umbra/engine";
+import { SceneSchema, runSim, type Replay, type Scene } from "umbra-engine";
 import { BLUEPRINT_JSON_SCHEMA, buildLevel, compileBlueprint } from "./builder.js";
 import { FIX_JSON_SCHEMA, applyEdits, fixEvidence, fixFinding } from "./fixer.js";
 import type { Generate } from "./gemini.js";

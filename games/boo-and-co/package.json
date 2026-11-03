@@ -1,19 +1,30 @@
 {
   "name": "@umbra/boo-and-co",
+  "private": true,
   "version": "0.0.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "playtest": "tsx scripts/playtest.ts",
+    "mcp": "tsx scripts/mcp.ts"
   },
   "dependencies": {
-    "@umbra/engine": "workspace:*",
-    "three": "^0.169.0"
+    "@modelcontextprotocol/sdk": "1.32.1",
+    "umbra-agents": "workspace:*",
+    "umbra-engine": "workspace:*",
+    "three": "^0.169.0",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/three": "^0.169.0",
+    "fast-check": "^3.22.0",
+    "tsx": "4.19.2",
     "typescript": "^5.6.3",
     "vite": "^5.4.10",
-    "@types/three": "^0.169.0"
+    "vitest": "^2.1.4"
   }
 }

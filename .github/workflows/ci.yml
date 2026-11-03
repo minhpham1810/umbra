@@ -25,8 +25,8 @@ jobs:
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
-      - run: pnpm --filter @umbra/engine exec tsc --noEmit
-      - run: pnpm --filter @umbra/agents exec tsc --noEmit
+      - run: pnpm --filter umbra-engine exec tsc --noEmit
+      - run: pnpm --filter umbra-agents exec tsc --noEmit
       - run: pnpm --filter @umbra/benchmark exec tsc --noEmit
       - run: pnpm --filter @umbra/lantern build
       - run: pnpm --filter @umbra/boo-and-co build
@@ -50,11 +50,11 @@ jobs:
       - name: Run Vitest (engine + agent API)
         run: pnpm test
       - name: Double-run determinism check on benchmark scenes
-        run: pnpm --filter @umbra/engine determinism-check
+        run: pnpm --filter umbra-engine determinism-check
       - name: Install Chromium
-        run: pnpm --filter @umbra/engine exec playwright install --with-deps chromium
+        run: pnpm --filter umbra-engine exec playwright install --with-deps chromium
       - name: Browser-vs-Node hash check
-        run: pnpm --filter @umbra/engine browser-hash-check
+        run: pnpm --filter umbra-engine browser-hash-check --with games/boo-and-co/src/sim/hash-cases.ts
 
   # ── scene schema validation ────────────────────────────────────────────────
   validate-scenes:
@@ -71,4 +71,4 @@ jobs:
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
       - name: Validate all scene JSON files
-        run: pnpm --filter @umbra/engine validate-scenes
+        run: pnpm --filter umbra-engine validate-scenes

@@ -4,7 +4,7 @@
 //   levels/mutated/bench-NN--<m>.json one planted bug per level per mutation (80)
 // Ground truth is in each scene's meta.benchmark.truth.
 import { mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
-import { makeReplay, searchReach } from "@umbra/agents";
+import { makeReplay, searchReach } from "umbra-agents";
 import { MUTATIONS, cleanLevel, lcg, mutate, randomSpec } from "../src/levels.js";
 
 const CLEAN_COUNT = 16;

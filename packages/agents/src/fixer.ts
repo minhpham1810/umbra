@@ -4,7 +4,7 @@
  * There is no add-pit edit, so a hole cannot be "fixed" by labelling it intentional.
  */
 import { z } from "zod";
-import { IDLE_FRAME, validateScene, type InputFrame, type KitPiece, type Replay, type Scene } from "@umbra/engine";
+import { IDLE_FRAME, validateScene, type InputFrame, type KitPiece, type Replay, type Scene } from "umbra-engine";
 import { makeReplay, searchReach } from "./tools/api.js";
 import { parseJson, type Generate } from "./gemini.js";
 import { playtest, type Finding, type PlaytestOptions, type PlaytestReport } from "./playtester.js";

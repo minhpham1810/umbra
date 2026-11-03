@@ -1,5 +1,6 @@
 {
   "name": "@umbra/studio",
+  "private": true,
   "version": "0.0.1",
   "type": "module",
   "scripts": {
@@ -9,12 +10,12 @@
     "samples": "tsx scripts/make-samples.ts"
   },
   "dependencies": {
-    "@umbra/engine": "workspace:*",
+    "umbra-engine": "workspace:*",
     "three": "^0.169.0"
   },
   "devDependencies": {
     "@types/three": "^0.169.0",
-    "@umbra/agents": "workspace:*",
+    "umbra-agents": "workspace:*",
     "tsx": "4.19.2",
     "typescript": "^5.6.3",
     "vite": "^5.4.10"

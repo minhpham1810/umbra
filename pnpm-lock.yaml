@@ -17,35 +17,35 @@ importers:
 
   apps/studio:
     dependencies:
-      '@umbra/engine':
-        specifier: workspace:*
-        version: link:../../packages/engine
       three:
         specifier: ^0.169.0
         version: 0.169.0
+      umbra-engine:
+        specifier: workspace:*
+        version: link:../../packages/engine
     devDependencies:
       '@types/three':
         specifier: ^0.169.0
         version: 0.169.0
-      '@umbra/agents':
-        specifier: workspace:*
-        version: link:../../packages/agents
       tsx:
         specifier: 4.19.2
         version: 4.19.2
       typescript:
         specifier: ^5.6.3
         version: 5.9.3
+      umbra-agents:
+        specifier: workspace:*
+        version: link:../../packages/agents
       vite:
         specifier: ^5.4.10
         version: 5.4.21(@types/node@22.20.5)
 
   benchmark:
     dependencies:
-      '@umbra/agents':
+      umbra-agents:
         specifier: workspace:*
         version: link:../packages/agents
-      '@umbra/engine':
+      umbra-engine:
         specifier: workspace:*
         version: link:../packages/engine
     devDependencies:
@@ -64,31 +64,52 @@ importers:
 
   games/boo-and-co:
     dependencies:
-      '@umbra/engine':
-        specifier: workspace:*
-        version: link:../../packages/engine
+      '@modelcontextprotocol/sdk':
+        specifier: 1.32.1
+        version: 1.32.1(supports-color@7.2.0)(zod@3.25.76)
       three:
         specifier: ^0.169.0
         version: 0.169.0
+      umbra-agents:
+        specifier: workspace:*
+        version: link:../../packages/agents
+      umbra-engine:
+        specifier: workspace:*
+        version: link:../../packages/engine
+      zod:
+        specifier: ^3.23.8
+        version: 3.25.76
     devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.20.5
       '@types/three':
         specifier: ^0.169.0
         version: 0.169.0
+      fast-check:
+        specifier: ^3.22.0
+        version: 3.23.2
+      tsx:
+        specifier: 4.19.2
+        version: 4.19.2
       typescript:
         specifier: ^5.6.3
         version: 5.9.3
       vite:
         specifier: ^5.4.10
         version: 5.4.21(@types/node@22.20.5)
+      vitest:
+        specifier: ^2.1.4
+        version: 2.1.9(@types/node@22.20.5)(supports-color@7.2.0)
 
   games/lantern:
     dependencies:
-      '@umbra/engine':
-        specifier: workspace:*
-        version: link:../../packages/engine
       three:
         specifier: ^0.169.0
         version: 0.169.0
+      umbra-engine:
+        specifier: workspace:*
+        version: link:../../packages/engine
     devDependencies:
       '@types/three':
         specifier: ^0.169.0
@@ -108,8 +129,8 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: 1.32.1
         version: 1.32.1(supports-color@7.2.0)(zod@3.25.76)
-      '@umbra/engine':
-        specifier: workspace:*
+      umbra-engine:
+        specifier: workspace:^
         version: link:../engine
       zod:
         specifier: ^3.23.8
@@ -146,6 +167,9 @@ importers:
       '@types/node':
         specifier: ^22.0.0
         version: 22.20.5
+      '@types/three':
+        specifier: ^0.169.0
+        version: 0.169.0
       esbuild:
         specifier: 0.21.5
         version: 0.21.5
@@ -155,6 +179,9 @@ importers:
       playwright:
         specifier: 1.56.1
         version: 1.56.1
+      three:
+        specifier: ^0.169.0
+        version: 0.169.0
       tsup:
         specifier: ^8.3.5
         version: 8.5.1(postcss@8.5.32)(supports-color@7.2.0)(tsx@4.23.15)(typescript@5.9.3)

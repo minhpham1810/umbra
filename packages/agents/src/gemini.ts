@@ -2,9 +2,10 @@
  * Gemini-backed Playtester planner. The model only picks and orders test goals;
  * its JSON is validated, and goals not in the scene are rejected.
  */
+import { join } from "node:path";
 import { GoogleGenAI } from "@google/genai";
 import { z } from "zod";
-import type { Scene } from "@umbra/engine";
+import type { Scene } from "umbra-engine";
 import { TestGoalSchema, defaultPlanner, type Planner, type TestGoal } from "./playtester.js";
 
 // Lite: answered reliably in testing while gemini-3.8-flash returned 503 (high demand).
@@ -88,8 +89,9 @@ export function parseJson(text: string, what: string): unknown {
   try { return JSON.parse(text); } catch { throw new Error(`Gemini ${what} is not JSON: ${text.slice(0, 200)}`); }
 }
 
-/** Load the repo-root .env (git-ignored) if there is one; real env vars win. */
-export function loadEnv(): void {
-  try { process.loadEnvFile(new URL("../../../.env", import.meta.url)); }
+/** Load `.env` from where the command was run, if there is one; real env vars win. */
+export function loadEnv(file = join(process.env["INIT_CWD"] ?? process.cwd(), ".env")): void {
+  // INIT_CWD: under `pnpm --filter`, the directory the command was run from (the repo root here).
+  try { process.loadEnvFile(file); }
   catch (e) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e; }
 }

@@ -29,7 +29,7 @@ An agent that hunts for unreachable goals, softlocks, fall-throughs and trivial 
 On the seeded-bug benchmark: detection recall ≥ 0.8, false alarm rate ≤ 0.1.
 
 ## Boo & Co. (balance)
-`playtestMansion` runs `searchStrategy`: ghost-only, trap-only and mixed plan pools, random restarts then hill climbing, seeded.
+`playtestBalance` runs `searchStrategy` on a `PlanGame` adapter (Boo & Co.'s: `games/boo-and-co/src/sim/balance.ts`): one pool per build kind plus mixed, random restarts then hill climbing, seeded.
 - [x] `unwinnable_quota`: best plan found is below the quota.
 - [x] `dominant_strategy`: a single-kind plan beats every plan using the other kind by over 10%.
 - [x] `crowd_deadlock`: a plan leaves visitors stuck; the plan replays it.

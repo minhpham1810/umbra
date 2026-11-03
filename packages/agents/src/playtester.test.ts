@@ -3,7 +3,7 @@ import { mkdtemp, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, it } from "vitest";
-import { SceneSchema, runSim, type Scene } from "@umbra/engine";
+import { SceneSchema, runSim, type Scene } from "umbra-engine";
 import { defaultPlanner, holeCandidates, playtest } from "./playtester.js";
 import { geminiPlanner, geminiPlannerWithFallback } from "./gemini.js";
 

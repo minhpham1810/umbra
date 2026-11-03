@@ -23,6 +23,8 @@ export interface PhysicsHandles {
   goalSensors: Map<RAPIER.ColliderHandle, EntityId>;
   /** Moving platforms in construction order. */
   platforms: Platform[];
+  /** Crate bodies (dynamic, rotation locked) in construction order. */
+  crates: RAPIER.RigidBodyHandle[];
 }
 
 export interface Platform {
@@ -91,6 +93,16 @@ export function buildWorld(scene: Scene): { world: PhysicsWorld; handles: Physic
       legTicks: Math.max(1, Math.round((distance / speed) / FIXED_DT)) });
   }
 
+  // Crates: dynamic boxes resting on the floor of their cell. Locked rotation keeps pushes predictable.
+  const crates: RAPIER.RigidBodyHandle[] = [];
+  for (const piece of sorted) {
+    if (piece.kind !== "crate") continue;
+    const body = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().lockRotations()
+      .setTranslation(piece.pos.x + HALF, piece.pos.y + CRATE_HALF, piece.pos.z + HALF));
+    world.createCollider(RAPIER.ColliderDesc.cuboid(CRATE_HALF, CRATE_HALF, CRATE_HALF), body);
+    crates.push(body.handle);
+  }
+
   // Goal sensors — one cuboid per goal, kinematic static.
   const goalSensors = new Map<RAPIER.ColliderHandle, EntityId>();
   const sortedGoals = [...scene.goals].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
@@ -118,12 +130,13 @@ export function buildWorld(scene: Scene): { world: PhysicsWorld; handles: Physic
 
   world.updateSceneQueries();
 
-  return { world, handles: { playerBody: playerBody.handle, playerCollider: playerCollider.handle, goalSensors, platforms } };
+  return { world, handles: { playerBody: playerBody.handle, playerCollider: playerCollider.handle, goalSensors, platforms, crates } };
 }
 
 // ── piece geometry ────────────────────────────────────────────────────────────
 
 const HALF = 0.5; // all pieces are 1 m³ blocks
 export const PLATFORM_HALF_Y = 0.125;
+export const CRATE_HALF = 0.45;
 // Ramps and stairs are still placeholder cubes.
 const SOLID = new Set<KitPiece["kind"]>(["floor", "wall", "stairs", "ramp"]);

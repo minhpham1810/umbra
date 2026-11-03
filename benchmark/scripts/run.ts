@@ -4,7 +4,7 @@
 import { fork } from "node:child_process";
 import { availableParallelism } from "node:os";
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { SceneSchema } from "@umbra/engine";
+import { SceneSchema } from "umbra-engine";
 import { DETECTORS, RUNS, matches, type Detection } from "../src/detectors.js";
 import { MUTATIONS, truthOf, type Mutation, type Truth } from "../src/levels.js";
 
