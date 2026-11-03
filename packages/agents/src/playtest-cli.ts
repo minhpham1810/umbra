@@ -3,8 +3,8 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { SceneSchema } from "@umbra/engine";
-import { DEFAULT_GEMINI_MODEL, geminiGenerate, geminiPlanner, loadEnv } from "./gemini.js";
-import { defaultPlanner, playtest, type Planner } from "./playtester.js";
+import { DEFAULT_GEMINI_MODEL, geminiGenerate, geminiPlannerWithFallback, loadEnv } from "./gemini.js";
+import { playtest } from "./playtester.js";
 import { MansionSchema } from "@umbra/engine";
 import { playtestMansion } from "./strategy.js";
 
@@ -24,12 +24,8 @@ if (typeof raw === "object" && raw !== null && "tiles" in raw) {
 const scene = SceneSchema.parse(raw);
 const key = process.env["GEMINI_API_KEY"];
 const model = process.env["GEMINI_MODEL"] ?? DEFAULT_GEMINI_MODEL;
-const gemini = key ? geminiPlanner(geminiGenerate(key, model)) : undefined;
 // The plan only orders tests, so a busy or failing model falls back to testing everything.
-const planner: Planner | undefined = gemini && (async (s) => {
-  try { return await gemini(s); }
-  catch (e) { console.error(`Gemini planning failed, using the default plan: ${(e as Error).message.slice(0, 200)}`); return defaultPlanner(s); }
-});
+const planner = key ? geminiPlannerWithFallback(geminiGenerate(key, model)) : undefined;
 console.error(planner ? `planner: gemini (${model})` : "planner: default (set GEMINI_API_KEY to use Gemini)");
 const report = await playtest(scene, { saveReplays: true, ...(planner ? { planner } : {}) });
 console.log(JSON.stringify(report, null, 2));

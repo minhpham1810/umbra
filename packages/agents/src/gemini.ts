@@ -5,7 +5,7 @@
 import { GoogleGenAI } from "@google/genai";
 import { z } from "zod";
 import type { Scene } from "@umbra/engine";
-import { TestGoalSchema, type Planner } from "./playtester.js";
+import { TestGoalSchema, defaultPlanner, type Planner, type TestGoal } from "./playtester.js";
 
 // Lite: answered reliably in testing while gemini-3.8-flash returned 503 (high demand).
 export const DEFAULT_GEMINI_MODEL = "gemini-3.5-flash-lite";
@@ -51,7 +51,7 @@ export function planPrompt(scene: Scene): string {
     "You plan playtests for a 3D platformer level. A physics simulator will run each test you list.",
     "Test kinds: {\"kind\":\"reach\",\"goalId\":ID} proves the player can reach a goal;",
     "{\"kind\":\"fall_check\"} walks into every unmarked floor hole to find fall-through bugs.",
-    "Order tests from most to least likely to find a bug. Use only goal IDs listed below.",
+    "Order tests from most to least likely to find a bug. Use only goal IDs listed below; any test you omit still runs, last.",
     'Reply with JSON only: {"goals":[...]}.',
     `Level: ${JSON.stringify({ name: scene.meta?.["name"], spawn: scene.spawn.pos, goals: scene.goals, pieceCounts: counts })}`,
   ].join("\n");
@@ -63,7 +63,23 @@ export function geminiPlanner(generate: Generate): Planner {
     const ids = new Set(scene.goals.map((g) => g.id));
     const unknown = plan.filter((g) => g.kind === "reach" && !ids.has(g.goalId));
     if (unknown.length) throw new Error(`Gemini plan names unknown goals: ${JSON.stringify(unknown)}`);
-    return plan;
+    // The model only orders tests: anything it left out runs after its picks, once each.
+    const key = (g: TestGoal) => (g.kind === "reach" ? `reach:${g.goalId}` : g.kind);
+    const seen = new Set<string>();
+    return [...plan, ...(await defaultPlanner(scene))].filter((g) => {
+      if (seen.has(key(g))) return false;
+      seen.add(key(g));
+      return true;
+    });
+  };
+}
+
+/** geminiPlanner that falls back to the default plan (and says why) if the model call fails. */
+export function geminiPlannerWithFallback(generate: Generate, log: (msg: string) => void = console.error): Planner {
+  const gemini = geminiPlanner(generate);
+  return async (scene) => {
+    try { return await gemini(scene); }
+    catch (e) { log(`Gemini planning failed, using the default plan: ${(e as Error).message.slice(0, 200)}`); return defaultPlanner(scene); }
   };
 }
 
