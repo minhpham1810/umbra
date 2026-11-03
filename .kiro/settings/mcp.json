@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "umbra": {
+      "command": "pnpm",
+      "args": ["--silent", "--filter", "@umbra/agents", "mcp"],
+      "env": { "UMBRA_SCENES_DIR": "games", "UMBRA_REPLAYS_DIR": "replays" }
+    }
+  }
+}

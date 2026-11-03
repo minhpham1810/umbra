@@ -25,7 +25,7 @@ A typed Node API (also served as an MCP server) that lets agents â€” and Kiro â€
 - [x] `nav.bake` bakes a navmesh with recast-navigation.
 - [x] `nav.path` returns waypoints or `{found: false}`.
 - [x] `search.reach` converts waypoints to `InputFrame[]` and runs the sim.
-- [ ] MCP server wraps every tool with Zod input validation.
+- [x] MCP server wraps every tool with Zod input validation (`pnpm --filter @umbra/agents mcp`; `search.strategy` waits for Boo & Co.).
 
 ## Acceptance
 `searchReach(scene, "exit", 1000)` finds a route on a solvable level.
