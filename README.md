@@ -132,9 +132,11 @@ Mark intended gaps with `pit` pieces; unmarked holes are reported. Fall findings
 save a replay under `UMBRA_REPLAYS_DIR` that reproduces on a fresh run.
 
 With `GEMINI_API_KEY` set, Gemini plans which tests to run and in what order
-(model `GEMINI_MODEL`, default `gemini-3.8-flash`; check the free-tier list on
-Google's pricing page). Its JSON plan is schema-checked and may only name goals in
-the scene. Without a key, every goal and the fall check run. Softlock and
+(model `GEMINI_MODEL`, default `gemini-3.5-flash-lite`; check the free-tier list on
+Google's pricing page). Put the key in your shell or in a repo-root `.env`
+(git-ignored), for example `GEMINI_API_KEY=...`; shell variables win. Its JSON
+plan is schema-checked and may only name goals in the scene. Without a key, or if
+the Gemini call fails, every goal and the fall check run. Softlock and
 trivial-skip checks are not implemented yet.
 
 ## Layout and current scope

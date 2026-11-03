@@ -7,16 +7,33 @@ import { z } from "zod";
 import type { Scene } from "@umbra/engine";
 import { TestGoalSchema, type Planner } from "./playtester.js";
 
-export const DEFAULT_GEMINI_MODEL = "gemini-3.8-flash";
+// Lite: answered reliably in testing while gemini-3.8-flash returned 503 (high demand).
+export const DEFAULT_GEMINI_MODEL = "gemini-3.5-flash-lite";
 
 /** Sends one prompt, returns the model's text. Injectable so tests need no network. */
 export type Generate = (prompt: string) => Promise<string>;
+
+/** JSON Schema twin of PlanSchema, so Gemini's structured output returns the right shape. */
+const PLAN_JSON_SCHEMA = {
+  type: "object",
+  properties: {
+    goals: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: { kind: { type: "string", enum: ["reach", "fall_check"] }, goalId: { type: "string" } },
+        required: ["kind"],
+      },
+    },
+  },
+  required: ["goals"],
+};
 
 export function geminiGenerate(apiKey: string, model = DEFAULT_GEMINI_MODEL, maxOutputTokens = 1024): Generate {
   const ai = new GoogleGenAI({ apiKey });
   return async (prompt) => {
     const res = await ai.models.generateContent({ model, contents: prompt,
-      config: { responseMimeType: "application/json", temperature: 0, maxOutputTokens } });
+      config: { responseMimeType: "application/json", responseJsonSchema: PLAN_JSON_SCHEMA, temperature: 0, maxOutputTokens } });
     if (!res.text) throw new Error("Gemini returned no text");
     return res.text;
   };
