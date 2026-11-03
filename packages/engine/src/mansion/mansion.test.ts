@@ -24,7 +24,7 @@ it("visitors walk through an empty mansion and nobody is scared", () => {
 it("ghosts and traps scare visitors, and scared visitors flee", () => {
   const plan: Placement[] = [{ kind: "ghost", x: 4, y: 1, tick: 0 }, { kind: "ghost", x: 9, y: 3, tick: 0 }, { kind: "trap", x: 6, y: 2, tick: 0 }];
   const r = runMansion(wide, plan);
-  expect(r.spent).toBe(80);
+  expect(r.spent).toBe(70);
   expect(r.scares).toBeGreaterThanOrEqual(10);
   expect(r.outcome).toBe("win");
   expect(r.fled).toBeGreaterThan(0);
@@ -32,12 +32,12 @@ it("ghosts and traps scare visitors, and scared visitors flee", () => {
 });
 
 it("rejects builds off the floor, on a taken cell, or over budget", () => {
-  const sim = createMansion({ ...wide, budget: 50 });
+  const sim = createMansion({ ...wide, budget: 40 });
   for (const p of [{ kind: "ghost", x: 0, y: 0 }, { kind: "ghost", x: 3, y: 1 }, { kind: "trap", x: 3, y: 1 }, { kind: "ghost", x: 5, y: 1 }] as const) sim.place(p);
   sim.step();
   expect(sim.events.filter((e) => e.kind === "rejected").map((e) => e.kind === "rejected" && e.reason)).toEqual([
-    "builds go on floor tiles", "cell already has a build", "not enough coins (20 left, costs 30)"]);
-  expect(sim.stats().spent).toBe(30);
+    "builds go on floor tiles", "cell already has a build", "not enough coins (15 left, costs 25)"]);
+  expect(sim.stats().spent).toBe(25);
 });
 
 it("a ghost in a one-wide hallway causes a crowd deadlock; a wide hall does not", () => {

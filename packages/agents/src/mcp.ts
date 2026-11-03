@@ -4,7 +4,8 @@
  */
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { SceneSchema, Vec3Schema } from "@umbra/engine";
+import { MansionSchema, SceneSchema, Vec3Schema } from "@umbra/engine";
+import { searchStrategy } from "./strategy.js";
 import {
   sceneValidate, sceneWrite, simRun, simObserve, searchReach, replaySave, navBake, navPath,
 } from "./tools/api.js";
@@ -71,6 +72,17 @@ export function createServer(): McpServer {
     description: "Search for inputs that reach a goal (navmesh route, steering, jump timings). budget = max sim runs. Returns {reached, inputs[], attempts}.",
     inputSchema: { scene: SceneSchema, goal: z.string(), budget: z.number().int().min(1).max(MAX_BUDGET) },
   }, async ({ scene, goal, budget }) => json(await searchReach(scene, goal, budget)));
+
+  server.registerTool("search.strategy", {
+    description: "Search Boo & Co. build plans for a mansion. budget = sim runs. Returns {quotaReachable, bestPlan, bestByPool, dominantStrategies, deadlocks}.",
+    inputSchema: { mansion: MansionSchema, budget: z.number().int().min(3).max(MAX_BUDGET) },
+  }, ({ mansion, budget }) => {
+    const s = searchStrategy(mansion, { budget });
+    const brief = (p: { plan: unknown; scares: number; deadlocked: number }) => ({ plan: p.plan, scares: p.scares, deadlocked: p.deadlocked });
+    return json({ quotaReachable: s.quotaReachable, bestPlan: brief(s.best),
+      bestByPool: { ghost: brief(s.bestByPool.ghost), trap: brief(s.bestByPool.trap), mixed: brief(s.bestByPool.mixed) },
+      dominantStrategies: s.dominantStrategies, deadlocks: s.deadlocks.map(brief), runs: s.runs });
+  });
 
   server.registerTool("replay.save", {
     description: "Run and save a replay under UMBRA_REPLAYS_DIR. Returns {replayId}.",

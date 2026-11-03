@@ -27,3 +27,10 @@ An agent that hunts for unreachable goals, softlocks, fall-throughs and trivial 
 
 ## Acceptance
 On the seeded-bug benchmark: detection recall ≥ 0.8, false alarm rate ≤ 0.1.
+
+## Boo & Co. (balance)
+`playtestMansion` runs `searchStrategy`: ghost-only, trap-only and mixed plan pools, random restarts then hill climbing, seeded.
+- [x] `unwinnable_quota`: best plan found is below the quota.
+- [x] `dominant_strategy`: a single-kind plan beats every plan using the other kind by over 10%.
+- [x] `crowd_deadlock`: a plan leaves visitors stuck; the plan replays it.
+- [ ] `economy_runaway` (needs an economy where coins can be reinvested).

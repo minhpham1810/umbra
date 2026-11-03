@@ -22,11 +22,18 @@ async function call(name: string, args: Record<string, unknown>) {
   return { isError: r.isError === true, text: r.content[0]!.text, value: r.isError ? undefined : JSON.parse(r.content[0]!.text) };
 }
 
-it("lists every design-doc tool except search.strategy", async () => {
+it("lists every design-doc tool", async () => {
   const { tools } = await client.listTools();
   expect(tools.map((t) => t.name).sort()).toEqual(["nav.bake", "nav.path", "replay.save", "scene.validate",
-    "scene.write", "search.reach", "sim.observe", "sim.run"]);
+    "scene.write", "search.reach", "search.strategy", "sim.observe", "sim.run"]);
 });
+
+it("searches mansion strategies through MCP", async () => {
+  const mansion = JSON.parse(readFileSync(new URL("../../../games/boo-and-co/src/mansion.json", import.meta.url), "utf8"));
+  const r = (await call("search.strategy", { mansion, budget: 30 })).value;
+  expect(r.runs).toBe(30);
+  expect(typeof r.bestPlan.scares).toBe("number");
+}, 60_000);
 
 it("validates scenes and reports errors", async () => {
   expect((await call("scene.validate", { scene: lantern })).value).toEqual({ ok: true, errors: [] });

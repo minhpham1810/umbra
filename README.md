@@ -37,9 +37,9 @@ and a keyboard is required; touch controls are not implemented.
 pnpm --filter @umbra/boo-and-co dev
 ```
 
-A bright top-down management sim: you run a haunted mansion. Pick a ghost (30
+A bright top-down management sim: you run a haunted mansion. Pick a ghost (25
 coins, scares one visitor within 2 tiles every half second) or a trap (20 coins,
-double scare for whoever steps on it, every 3 seconds) and click floor tiles to
+double scare for whoever steps on it, every 6 seconds) and click floor tiles to
 build. Hit the scare quota before the day ends. Mouse only; drag to orbit, scroll
 to zoom, Space pauses, and 1×–8× sets the speed. Visitors who get scared enough
 flee back to the entrance, and in a one-wide hallway they can jam against new
@@ -47,8 +47,31 @@ arrivals; the HUD counts stuck visitors.
 
 The simulation (`packages/engine/src/mansion`) is integer-only on a grid with one
 visitor per cell, instead of the navmesh crowds in the design, so it is
-deterministic in every browser. The mansion is `games/boo-and-co/src/mansion.json`;
-its quota (125) is set above what 90% of random build plans reach.
+deterministic in every browser. The mansion is `games/boo-and-co/src/mansion.json`.
+Its quota (140) needs both build kinds: the strategy search's best ghost-only and
+trap-only plans reach about 113 scares, mixed plans about 160.
+
+### Balance playtest
+
+```sh
+pnpm --silent --filter @umbra/agents playtest games/boo-and-co/src/mansion.json
+```
+
+For a mansion file, the Playtester runs `searchStrategy` (also the `search.strategy`
+MCP tool): about 600 simulated days across ghost-only, trap-only and mixed plans,
+random restarts then hill climbing, with a fixed seed. It reports:
+
+| Bug type | Meaning |
+| --- | --- |
+| `unwinnable_quota` | No plan found reaches the quota |
+| `dominant_strategy` | A single-kind plan beats every plan using the other kind by over 10% |
+| `crowd_deadlock` | A plan leaves visitors stuck at the end of the day |
+
+Each finding carries the build plan that shows it; the mansion plus the plan replay
+exactly. The first run on the shipped mansion found that all-trap plans dominated
+(220 scares against 177 for any plan with a ghost); trap cooldown and ghost cost
+were rebalanced from that. Mansions can override build stats with `catalog` for
+balance mutations.
 
 ## Build Lantern
 
@@ -222,8 +245,8 @@ jump, edge jumps (jump when the ground ahead drops away or rises one block, whic
 crosses any number of gaps), one ride per moving platform, then one jump at each tick
 offset. It only reports a route a fresh `runSim` reproduces. Edge jumps are not
 combined with platform rides. Stacked solid blocks in one column are merged into a
-single collider so the player cannot climb walls on the seams. `search.strategy` and
-the Boo & Co. balance checks remain unfinished. Use the targeted Lantern commands above; other apps are still stubs.
+single collider so the player cannot climb walls on the seams. Boo & Co. replays are not
+yet viewable in Studio. Use the targeted Lantern commands above; other apps are still stubs.
 
 Rapier is pinned to 0.12.0. Goal collision fixes change simulation hashes from
 earlier commits even though the Rapier version is unchanged; regenerate earlier
