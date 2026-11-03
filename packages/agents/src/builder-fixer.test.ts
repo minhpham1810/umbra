@@ -82,16 +82,15 @@ it("applies edits and replaces a pit marker when floor fills it", () => {
 });
 
 it("runs the loop: build, playtest, fix, clean", async () => {
-  // A 5-cell gap is too wide to jump; the Fixer narrows it to 3 cells.
-  // (A stepping stone would need two jumps, which searchTarget cannot prove yet.)
-  const narrow = [4, 8].flatMap((z) => [-1, 0, 1].map((x) => ({ op: "add_floor", x, y: 0, z })));
+  // A 5-cell gap is too wide to jump; the Fixer adds a stepping-stone row in the middle.
+  const stone = [-1, 0, 1].map((x) => ({ op: "add_floor", x, y: 0, z: 6 }));
   const gen = fake([
     [BLUEPRINT_JSON_SCHEMA, { ...corridor, pits: [{ x0: -1, z0: 4, x1: 1, z1: 8 }] }],
-    [FIX_JSON_SCHEMA, { reason: "narrow the gap", edits: narrow }],
+    [FIX_JSON_SCHEMA, { reason: "stepping stone", edits: stone }],
   ]);
   const result = await runLoop("a corridor with a gap", gen, { playtest: { maxRuns: 60 } });
   expect(result.initialFindings).toMatchObject([{ type: "unreachable_goal", goalId: "exit" }]);
-  expect(result.fixes).toMatchObject([{ edits: narrow, attempts: 1 }]);
+  expect(result.fixes).toMatchObject([{ edits: stone, attempts: 1 }]);
   expect(result.unresolved).toEqual([]);
-  expect(result.scene.pieces.filter((p) => p.kind === "pit")).toHaveLength(9);
+  expect(result.scene.pieces.filter((p) => p.kind === "pit")).toHaveLength(12);
 }, 120_000);

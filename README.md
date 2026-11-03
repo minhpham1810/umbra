@@ -124,7 +124,7 @@ the navmesh first and then proved in the simulator:
 
 | Bug type | How it is found |
 | --- | --- |
-| `unreachable_goal` | `searchTarget` fails to reach the goal (walk, held jump, platform rides, jump timings) |
+| `unreachable_goal` | `searchTarget` fails to reach the goal (walk, held jump, edge jumps over any number of gaps, platform rides, jump timings) |
 | `fall_through` | Walking into an unmarked hole inside the level ends out of bounds in that cell |
 | `out_of_bounds` | Same, at the level's edge (for example, jumping a one-block wall) |
 
@@ -153,8 +153,7 @@ proposes up to 12 edits (`add_floor`, `add_wall`, `remove`), and an edit is kept
 only if a full playtest no longer reproduces the bug and finds nothing new. There
 is no add-pit edit, so a hole cannot be fixed by marking it intended. The CLI
 writes the scene, prints the build, fixes and unresolved findings, and exits 1 if
-any remain. Fixes that need two separate jumps are rejected, because the search
-cannot prove those routes yet.
+any remain.
 
 ## Layout and current scope
 
@@ -181,11 +180,13 @@ All goal kinds currently behave as collectable sensors, and reaching every goal
 wins. Keys, doors, and hazards do not yet have separate rules. The seed argument
 is retained for replays but the simulation currently has no random systems.
 `searchReach(scene, goalId, budget)` treats `budget` as the maximum number of sim runs.
-It follows the navmesh route (or a straight line), tries no jump, held jump, then
-one jump at each tick offset, and only reports a route a fresh `runSim` reproduces.
-It cannot yet find routes needing two separate jumps. Stacked solid blocks in one
-column are merged into a single collider so the player cannot climb walls on the
-seams. `search.strategy` and the agent loop remain unfinished. Use the targeted Lantern commands above; other apps are still stubs.
+It follows the navmesh route (or a straight line) and tries, in order: no jump, held
+jump, edge jumps (jump when the ground ahead drops away or rises one block, which
+crosses any number of gaps), one ride per moving platform, then one jump at each tick
+offset. It only reports a route a fresh `runSim` reproduces. Edge jumps are not
+combined with platform rides. Stacked solid blocks in one column are merged into a
+single collider so the player cannot climb walls on the seams. `search.strategy`,
+Studio and Boo & Co. remain unfinished. Use the targeted Lantern commands above; other apps are still stubs.
 
 Rapier is pinned to 0.12.0. Goal collision fixes change simulation hashes from
 earlier commits even though the Rapier version is unchanged; regenerate earlier

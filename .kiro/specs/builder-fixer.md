@@ -21,5 +21,5 @@ Builder → Playtester → Fixer per finding → stop when clean or after 5 fix 
 - [x] Builder output always passes `scene.validate`.
 - [x] Fixer acceptance rule from the design doc.
 - [x] Loop CLI with a JSON summary.
-- [ ] Two-jump routes in `searchTarget`, so stepping-stone fixes can be proved.
+- [x] Multi-jump routes in `searchTarget` (edge jumps), so stepping-stone fixes can be proved.
 - [ ] Studio shows each fix as a before/after replay.
