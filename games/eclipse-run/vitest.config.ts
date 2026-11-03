@@ -1,0 +1,5 @@
+import { defineConfig } from 'vitest/config';
+export default defineConfig({
+  resolve: { alias: { '@umbra/engine': new URL('../../packages/engine/src/index.ts', import.meta.url).pathname } },
+  test: { testTimeout: 30000, pool: 'forks', poolOptions: { forks: { singleFork: true } } },
+});
