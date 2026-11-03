@@ -115,7 +115,7 @@ export async function runSim(opts: RunOptions): Promise<RunResult> {
           if (!goalsReached.has(gi)) {
             goalsReached.add(gi);
             const goal = opts.scene.goals[gi];
-            events.push({ tick, kind: "goal_reached", goalId: goal?.id });
+            events.push({ tick, kind: "goal_reached", ...(goal?.id !== undefined ? { goalId: goal.id } : {}) });
           }
         }
       }
