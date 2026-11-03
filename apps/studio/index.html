@@ -24,6 +24,11 @@
     #samples small { display: block; color: var(--muted); }
     label.file { display: block; text-align: center; margin-top: 8px; }
     label.file input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+    .seg { display: flex; gap: 6px; } .seg button { flex: 1; }
+    .seg button[aria-pressed="true"] { border-color: var(--accent); background: #2a2a22; }
+    #edits li { font: 13px ui-monospace, monospace; margin-top: 4px; }
+    #edits .add { color: var(--ok); } #edits .remove { color: var(--bad); }
+    #fix-reason { margin: 8px 0 0; }
     #events button { width: 100%; text-align: left; padding: 6px 10px; margin-bottom: 4px; font-size: 13px; }
     main { position: relative; min-width: 0; }
     canvas { display: block; width: 100%; height: 100%; }
@@ -56,6 +61,12 @@
     <ul id="samples"></ul>
     <label class="file">Open replay file…<input id="file" type="file" accept=".json,application/json" /></label>
     <p class="sub" style="margin-top:8px">Or drop a replay JSON anywhere.</p>
+    <section id="fix" hidden>
+      <h2>Fix</h2>
+      <div class="seg" role="group" aria-label="Show run"><button id="show-before" type="button" aria-pressed="true">Before</button><button id="show-after" type="button" aria-pressed="false">After</button></div>
+      <p id="fix-reason" class="sub"></p>
+      <ul id="edits"></ul>
+    </section>
     <h2>Events</h2>
     <ul id="events"><li class="sub">No events.</li></ul>
   </aside>

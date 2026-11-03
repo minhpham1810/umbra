@@ -4,7 +4,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { SceneSchema, runSim, type InputFrame, type Replay, type Scene } from "@umbra/engine";
-import { playtest, searchReach } from "@umbra/agents";
+import { fixEvidence, fixFinding, playtest, searchReach } from "@umbra/agents";
 
 const out = new URL("../public/replays/", import.meta.url);
 const level = (f: string) => SceneSchema.parse(JSON.parse(readFileSync(new URL(`../../../games/lantern/src/${f}`, import.meta.url), "utf8")));
@@ -41,6 +41,16 @@ try {
   if (!f?.replayId) throw new Error("fall-through sample: Playtester found nothing");
   const saved = JSON.parse(readFileSync(join(tmp, `${f.replayId}.json`), "utf8")) as Replay;
   await save("lantern-1-fall-through", "Bug: fall-through", holed, saved.inputs, saved.note ?? f.detail);
+
+  // The same bug fixed. The Fixer's reply is scripted here so samples build without a Gemini key;
+  // acceptance (bug gone, nothing new) is still checked by a real playtest.
+  const reply = JSON.stringify({ reason: "Fill the missing floor tile.", edits: [{ op: "add_floor", x: 0, y: 0, z: 4 }] });
+  const fixed = await fixFinding(holed, f, report, async () => reply);
+  if (!fixed.fixed) throw new Error(`fix sample: fix rejected: ${fixed.feedback.join("; ")}`);
+  const evidence = await fixEvidence(holed, fixed.scene, f, fixed.edits, fixed.reason);
+  writeFileSync(new URL("lantern-1-fix.json", out), JSON.stringify(evidence));
+  index.push({ file: "lantern-1-fix.json", title: "Fix: fill the hole", note: "Before and after the Fixer's edit, same inputs." });
+  console.log("wrote lantern-1-fix.json");
 } finally { rmSync(tmp, { recursive: true, force: true }); }
 
 writeFileSync(new URL("index.json", out), JSON.stringify(index, null, 2) + "\n");

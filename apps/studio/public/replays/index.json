@@ -13,5 +13,10 @@
     "file": "lantern-1-fall-through.json",
     "title": "Bug: fall-through",
     "note": "fall_through: The player falls out of the level through unmarked hole (0, 4)."
+  },
+  {
+    "file": "lantern-1-fix.json",
+    "title": "Fix: fill the hole",
+    "note": "Before and after the Fixer's edit, same inputs."
   }
 ]

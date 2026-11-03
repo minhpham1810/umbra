@@ -28,5 +28,5 @@ const model = process.env["GEMINI_MODEL"] ?? DEFAULT_GEMINI_MODEL;
 const planner = key ? geminiPlannerWithFallback(geminiGenerate(key, model)) : undefined;
 console.error(planner ? `planner: gemini (${model})` : "planner: default (set GEMINI_API_KEY to use Gemini)");
 const report = await playtest(scene, { saveReplays: true, ...(planner ? { planner } : {}) });
-console.log(JSON.stringify(report, null, 2));
+console.log(JSON.stringify({ ...report, findings: report.findings.map(({ inputs: _i, ...f }) => f) }, null, 2));
 process.exit(report.findings.length ? 1 : 0);

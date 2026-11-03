@@ -216,8 +216,16 @@ trail, a scrubber, speed control and a clickable event list. Space plays or paus
 the arrow keys step one tick. Open a replay with the file button, by dropping a JSON
 file, or with `?replay=<url>`. Replay files are validated before they run.
 
-Bundled samples live in `apps/studio/public/replays/` (a win on each Lantern level
-and a Playtester fall-through finding). Regenerate them with
+**Fix view.** Each fix the agent loop accepts also yields an `umbra-fix` file with
+two replays: before and after the Fixer's edit. Studio re-simulates and hash-checks
+both, shows Before/After buttons and the edit list, and outlines edited cells
+(green added, red removed). A fall replays the same inputs on both scenes, so the
+fixed run visibly stays up; an unreachable goal shows the player idle before and a
+found route after. `haunt` writes these to `apps/studio/public/fixes/` and prints
+each one's `?replay=/fixes/...` query.
+
+Bundled samples live in `apps/studio/public/replays/` (a win on each Lantern level,
+a Playtester fall-through finding, and its fix). Regenerate them with
 `pnpm --filter @umbra/studio samples`. Replays saved by the Playtester carry the
 finding as their `note`, which Studio shows.
 

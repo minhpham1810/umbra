@@ -4,7 +4,8 @@
  * There is no add-pit edit, so a hole cannot be "fixed" by labelling it intentional.
  */
 import { z } from "zod";
-import { validateScene, type KitPiece, type Scene } from "@umbra/engine";
+import { IDLE_FRAME, validateScene, type InputFrame, type KitPiece, type Replay, type Scene } from "@umbra/engine";
+import { makeReplay, searchReach } from "./tools/api.js";
 import { parseJson, type Generate } from "./gemini.js";
 import { playtest, type Finding, type PlaytestOptions, type PlaytestReport } from "./playtester.js";
 
@@ -99,4 +100,40 @@ export async function fixFinding(scene: Scene, finding: Finding, baseline: Playt
       .filter(Boolean).join(" and "));
   }
   return { fixed: false, scene, edits: [], attempts: opts.maxAttempts ?? 3, ...(report ? { report } : {}), feedback };
+}
+
+/** Before/after replays for an accepted fix, for Studio's fix view. */
+export interface FixEvidence {
+  kind: "umbra-fix";
+  finding: Omit<Finding, "inputs">;
+  edits: Edit[];
+  reason?: string;
+  before: Replay;
+  after: Replay;
+}
+
+const IDLE_TICKS = 120;
+
+/**
+ * A fall replays the same inputs on both scenes, so the fixed run visibly stays up.
+ * An unreachable goal has no failing run to show: before idles at spawn, after is a
+ * route the search finds on the fixed scene.
+ */
+export async function fixEvidence(before: Scene, after: Scene, finding: Finding, edits: Edit[], reason?: string): Promise<FixEvidence> {
+  const { inputs, ...rest } = finding;
+  const edited = edits.map((e) => `${e.op} (${e.x},${e.y},${e.z})`).join(", ");
+  let failing: InputFrame[], passing: InputFrame[];
+  if (inputs) failing = passing = inputs;
+  else {
+    if (!finding.goalId) throw new Error(`${finding.type} finding has no inputs to replay`);
+    const r = await searchReach(after, finding.goalId, 300);
+    if (!r.reached) throw new Error(`fixed scene: "${finding.goalId}" still not reached`);
+    failing = Array.from({ length: IDLE_TICKS }, () => IDLE_FRAME);
+    passing = r.inputs;
+  }
+  return {
+    kind: "umbra-fix", finding: rest, edits, ...(reason ? { reason } : {}),
+    before: await makeReplay(before, 0, failing, `Before: ${finding.detail}`),
+    after: await makeReplay(after, 0, passing, `After ${edited}: ${inputs ? "the same inputs no longer fall out." : `a route to "${finding.goalId}" exists.`}`),
+  };
 }
