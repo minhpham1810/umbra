@@ -14,6 +14,8 @@ export interface Replay {
   /** State hash after the final tick — used to verify reproduction. */
   finalStateHash: number;
   createdAt: string; // ISO-8601
+  /** What this replay shows, e.g. a Playtester finding. */
+  note?: string;
 }
 
 /** Outcome codes the simulator reports. */

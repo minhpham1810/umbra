@@ -95,6 +95,7 @@ export async function replaySave(
   scene: Scene,
   seed: number,
   inputs: InputFrame[],
+  note?: string,
 ): Promise<string> {
   const result = await runSim({ scene, seed, inputs, maxTicks: inputs.length });
   const replay: Replay = {
@@ -105,6 +106,7 @@ export async function replaySave(
     inputs,
     finalStateHash: result.finalStateHash,
     createdAt: new Date().toISOString(),
+    ...(note ? { note } : {}),
   };
   const dir = process.env["UMBRA_REPLAYS_DIR"] ?? "./replays";
   const { writeFile, mkdir } = await import("node:fs/promises");

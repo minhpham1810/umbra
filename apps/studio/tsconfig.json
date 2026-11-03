@@ -1,0 +1,29 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": [
+      "ES2022",
+      "DOM"
+    ],
+    "types": [
+      "vite/client"
+    ],
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "paths": {
+      "@umbra/engine": [
+        "../../packages/engine/src/index.ts"
+      ],
+      "@umbra/agents": [
+        "../../packages/agents/src/index.ts"
+      ]
+    }
+  },
+  "include": [
+    "src",
+    "scripts",
+    "vite.config.ts"
+  ]
+}

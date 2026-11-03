@@ -28,6 +28,7 @@ jobs:
       - run: pnpm --filter @umbra/engine exec tsc --noEmit
       - run: pnpm --filter @umbra/agents exec tsc --noEmit
       - run: pnpm --filter @umbra/lantern build
+      - run: pnpm --filter @umbra/studio build
 
   # ── engine tests (includes determinism property tests) ────────────────────
   test-engine:

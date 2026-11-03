@@ -1,0 +1,46 @@
+// `pnpm --filter @umbra/studio samples`: regenerate the bundled sample replays
+// (public/replays/*.json + index.json) with the real agents.
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { SceneSchema, runSim, type InputFrame, type Replay, type Scene } from "@umbra/engine";
+import { playtest, searchReach } from "@umbra/agents";
+
+const out = new URL("../public/replays/", import.meta.url);
+const level = (f: string) => SceneSchema.parse(JSON.parse(readFileSync(new URL(`../../../games/lantern/src/${f}`, import.meta.url), "utf8")));
+const index: { file: string; title: string; note: string }[] = [];
+
+async function save(id: string, title: string, scene: Scene, inputs: InputFrame[], note: string) {
+  const { finalStateHash } = await runSim({ scene, seed: 0, inputs, maxTicks: inputs.length });
+  const replay: Replay = { id, rapierVersion: scene.rapierVersion, scene, seed: 0, inputs, finalStateHash,
+    createdAt: new Date().toISOString(), note };
+  writeFileSync(new URL(`${id}.json`, out), JSON.stringify(replay));
+  index.push({ file: `${id}.json`, title, note });
+  console.log(`wrote ${id}.json (${inputs.length} ticks)`);
+}
+
+for (const [id, title, file, note] of [
+  ["lantern-1-win", "Lantern 1: jump the gap", "level.json", "searchReach found a winning route: walk, then jump the broken floor."],
+  ["lantern-2-ride", "Lantern 2: ride the ferry", "level-2.json", "searchReach found a route across the chasm using the moving platform."],
+] as const) {
+  const scene = level(file);
+  const r = await searchReach(scene, "exit", 300);
+  if (!r.reached) throw new Error(`${id}: exit not reached`);
+  await save(id, title, scene, r.inputs, note);
+}
+
+// A seeded bug: one floor tile removed. The Playtester's fall check finds it.
+const lvl1 = level("level.json");
+const holed = { ...lvl1, pieces: lvl1.pieces.filter((p) => !(p.kind === "floor" && p.pos.x === 0 && p.pos.z === 4)),
+  meta: { ...lvl1.meta, name: "Lantern 1 with a missing tile" } };
+const tmp = mkdtempSync(join(tmpdir(), "umbra-samples-"));
+process.env["UMBRA_REPLAYS_DIR"] = tmp;
+try {
+  const report = await playtest(holed, { planner: async () => [{ kind: "fall_check" }], saveReplays: true });
+  const f = report.findings[0];
+  if (!f?.replayId) throw new Error("fall-through sample: Playtester found nothing");
+  const saved = JSON.parse(readFileSync(join(tmp, `${f.replayId}.json`), "utf8")) as Replay;
+  await save("lantern-1-fall-through", "Bug: fall-through", holed, saved.inputs, saved.note ?? f.detail);
+} finally { rmSync(tmp, { recursive: true, force: true }); }
+
+writeFileSync(new URL("index.json", out), JSON.stringify(index, null, 2) + "\n");
