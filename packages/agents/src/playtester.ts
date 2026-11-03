@@ -61,30 +61,43 @@ const SOLID = new Set(["floor", "wall", "stairs", "ramp", "moving_platform"]);
 const key = (x: number, z: number) => `${x},${z}`;
 
 /**
- * Columns with no solid piece and no pit marker, inside the level's bounds and next to a
- * floor column: places a player can walk into and fall through by accident.
+ * Columns with no solid piece and no pit marker, inside the level's bounds (or one cell
+ * past them) and next to a column the player can stand on: places a player can walk or
+ * jump into and fall through by accident.
  */
 export function holeCandidates(scene: Scene) {
-  const solid = new Map<string, number>(); // column → highest solid y
+  const top = new Map<string, { y: number; wall: boolean }>(); // column → highest solid piece
   const pits = new Set<string>();
   for (const p of scene.pieces) {
     const k = key(p.pos.x, p.pos.z);
     if (p.kind === "pit") pits.add(k);
-    else if (SOLID.has(p.kind)) solid.set(k, Math.max(solid.get(k) ?? -Infinity, p.pos.y));
+    else if (SOLID.has(p.kind) && p.pos.y >= (top.get(k)?.y ?? -Infinity)) top.set(k, { y: p.pos.y, wall: p.kind === "wall" });
   }
+  // A wall top counts as standable only if a jump from a neighbouring floor reaches it (one block up).
+  const standable = (x: number, z: number) => {
+    const t = top.get(key(x, z));
+    if (!t) return undefined;
+    if (!t.wall) return t.y;
+    const reach = [[0, -1], [0, 1], [-1, 0], [1, 0]].some(([dx, dz]) => {
+      const n = top.get(key(x + dx!, z + dz!));
+      return n !== undefined && !n.wall && n.y >= t.y - 1;
+    });
+    return reach ? t.y : undefined;
+  };
   const xs = scene.pieces.map((p) => p.pos.x), zs = scene.pieces.map((p) => p.pos.z);
   const holes: { x: number; z: number; floorY: number; edge: boolean; from: { x: number; z: number } }[] = [];
   const [x0, x1, z0, z1] = [Math.min(...xs), Math.max(...xs), Math.min(...zs), Math.max(...zs)];
-  for (let x = x0; x <= x1; x++) {
-    for (let z = z0; z <= z1; z++) {
-      if (solid.has(key(x, z)) || pits.has(key(x, z))) continue;
-      // Approach from the lowest neighbour: a floor rather than a wall top.
+  // One cell past the bounds too: beyond a low outer wall is open air.
+  for (let x = x0 - 1; x <= x1 + 1; x++) {
+    for (let z = z0 - 1; z <= z1 + 1; z++) {
+      if (top.has(key(x, z)) || pits.has(key(x, z))) continue;
+      // Approach from the lowest standable neighbour: a floor rather than a wall top.
       let best: { y: number; x: number; z: number } | undefined;
       for (const [dx, dz] of [[0, -1], [0, 1], [-1, 0], [1, 0]] as const) {
-        const y = solid.get(key(x + dx, z + dz));
+        const y = standable(x + dx, z + dz);
         if (y !== undefined && (!best || y < best.y)) best = { y, x: x + dx, z: z + dz };
       }
-      if (best) holes.push({ x, z, floorY: best.y + 1, edge: x === x0 || x === x1 || z === z0 || z === z1, from: { x: best.x, z: best.z } });
+      if (best) holes.push({ x, z, floorY: best.y + 1, edge: x <= x0 || x >= x1 || z <= z0 || z >= z1, from: { x: best.x, z: best.z } });
     }
   }
   return holes;
@@ -120,9 +133,9 @@ export async function playtest(scene: Scene, opts: PlaytestOptions = {}): Promis
       for (const hole of holeCandidates(scene)) {
         const approach: Point = { x: hole.from.x + 0.5, y: hole.floorY, z: hole.from.z + 0.5 };
         const target: Point = { x: hole.x + 0.5, y: hole.floorY, z: hole.z + 0.5 };
-        // Walking in is enough to prove a fall: try the walk, plus one ride per platform
-        // (searchTarget's run order) for holes beyond a platform crossing.
-        const runs = 2 + scene.pieces.filter((p) => p.kind === "moving_platform").length;
+        // searchTarget's run order: walk, hold jump, three edge-jump timings (to get past
+        // gaps on the way), then one ride per platform for holes beyond a crossing.
+        const runs = 5 + scene.pieces.filter((p) => p.kind === "moving_platform").length;
         const r = await searchTarget(scene, approach, target, runs, (run) => run.events.some((e) =>
           e.kind === "out_of_bounds" && e.pos && Math.floor(e.pos.x) === hole.x && Math.floor(e.pos.z) === hole.z));
         simRuns += r.attempts;

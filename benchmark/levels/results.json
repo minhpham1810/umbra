@@ -1,0 +1,207 @@
+{
+  "levels": 96,
+  "runsPerLevel": 300,
+  "date": "2026-11-03",
+  "scores": {
+    "navmesh": {
+      "recall": 0.6,
+      "detected": 48,
+      "planted": 80,
+      "byMutation": {
+        "chasm": {
+          "detected": 16,
+          "planted": 16
+        },
+        "ledge": {
+          "detected": 16,
+          "planted": 16
+        },
+        "walled-exit": {
+          "detected": 16,
+          "planted": 16
+        },
+        "missing-tile": {
+          "detected": 0,
+          "planted": 16
+        },
+        "low-wall": {
+          "detected": 0,
+          "planted": 16
+        }
+      },
+      "falseAlarmRate": 1,
+      "cleanFlagged": 16,
+      "clean": 16,
+      "spurious": 32,
+      "msPerLevel": {
+        "mean": 37,
+        "median": 19,
+        "max": 174
+      },
+      "simRunsPerLevel": 0,
+      "missed": [
+        "mutated/bench-01--low-wall.json",
+        "mutated/bench-01--missing-tile.json",
+        "mutated/bench-02--low-wall.json",
+        "mutated/bench-02--missing-tile.json",
+        "mutated/bench-03--low-wall.json",
+        "mutated/bench-03--missing-tile.json",
+        "mutated/bench-04--low-wall.json",
+        "mutated/bench-04--missing-tile.json",
+        "mutated/bench-05--low-wall.json",
+        "mutated/bench-05--missing-tile.json",
+        "mutated/bench-06--low-wall.json",
+        "mutated/bench-06--missing-tile.json",
+        "mutated/bench-07--low-wall.json",
+        "mutated/bench-07--missing-tile.json",
+        "mutated/bench-08--low-wall.json",
+        "mutated/bench-08--missing-tile.json",
+        "mutated/bench-09--low-wall.json",
+        "mutated/bench-09--missing-tile.json",
+        "mutated/bench-10--low-wall.json",
+        "mutated/bench-10--missing-tile.json",
+        "mutated/bench-11--low-wall.json",
+        "mutated/bench-11--missing-tile.json",
+        "mutated/bench-12--low-wall.json",
+        "mutated/bench-12--missing-tile.json",
+        "mutated/bench-13--low-wall.json",
+        "mutated/bench-13--missing-tile.json",
+        "mutated/bench-14--low-wall.json",
+        "mutated/bench-14--missing-tile.json",
+        "mutated/bench-15--low-wall.json",
+        "mutated/bench-15--missing-tile.json",
+        "mutated/bench-16--low-wall.json",
+        "mutated/bench-16--missing-tile.json"
+      ],
+      "falseAlarms": [
+        "clean/bench-01.json",
+        "clean/bench-02.json",
+        "clean/bench-03.json",
+        "clean/bench-04.json",
+        "clean/bench-05.json",
+        "clean/bench-06.json",
+        "clean/bench-07.json",
+        "clean/bench-08.json",
+        "clean/bench-09.json",
+        "clean/bench-10.json",
+        "clean/bench-11.json",
+        "clean/bench-12.json",
+        "clean/bench-13.json",
+        "clean/bench-14.json",
+        "clean/bench-15.json",
+        "clean/bench-16.json"
+      ]
+    },
+    "playtester": {
+      "recall": 1,
+      "detected": 80,
+      "planted": 80,
+      "byMutation": {
+        "chasm": {
+          "detected": 16,
+          "planted": 16
+        },
+        "ledge": {
+          "detected": 16,
+          "planted": 16
+        },
+        "walled-exit": {
+          "detected": 16,
+          "planted": 16
+        },
+        "missing-tile": {
+          "detected": 16,
+          "planted": 16
+        },
+        "low-wall": {
+          "detected": 16,
+          "planted": 16
+        }
+      },
+      "falseAlarmRate": 0,
+      "cleanFlagged": 0,
+      "clean": 16,
+      "spurious": 1,
+      "msPerLevel": {
+        "mean": 13783,
+        "median": 4872,
+        "max": 114834
+      },
+      "simRunsPerLevel": 153,
+      "missed": [],
+      "falseAlarms": []
+    },
+    "random": {
+      "recall": 0.813,
+      "detected": 65,
+      "planted": 80,
+      "byMutation": {
+        "chasm": {
+          "detected": 16,
+          "planted": 16
+        },
+        "ledge": {
+          "detected": 16,
+          "planted": 16
+        },
+        "walled-exit": {
+          "detected": 16,
+          "planted": 16
+        },
+        "missing-tile": {
+          "detected": 9,
+          "planted": 16
+        },
+        "low-wall": {
+          "detected": 8,
+          "planted": 16
+        }
+      },
+      "falseAlarmRate": 1,
+      "cleanFlagged": 16,
+      "clean": 16,
+      "spurious": 2656,
+      "msPerLevel": {
+        "mean": 41171,
+        "median": 33265,
+        "max": 129182
+      },
+      "simRunsPerLevel": 300,
+      "missed": [
+        "mutated/bench-01--low-wall.json",
+        "mutated/bench-01--missing-tile.json",
+        "mutated/bench-03--low-wall.json",
+        "mutated/bench-03--missing-tile.json",
+        "mutated/bench-04--low-wall.json",
+        "mutated/bench-04--missing-tile.json",
+        "mutated/bench-06--low-wall.json",
+        "mutated/bench-06--missing-tile.json",
+        "mutated/bench-07--low-wall.json",
+        "mutated/bench-07--missing-tile.json",
+        "mutated/bench-10--low-wall.json",
+        "mutated/bench-13--low-wall.json",
+        "mutated/bench-13--missing-tile.json",
+        "mutated/bench-16--low-wall.json",
+        "mutated/bench-16--missing-tile.json"
+      ],
+      "falseAlarms": [
+        "clean/bench-01.json",
+        "clean/bench-02.json",
+        "clean/bench-03.json",
+        "clean/bench-04.json",
+        "clean/bench-05.json",
+        "clean/bench-06.json",
+        "clean/bench-07.json",
+        "clean/bench-08.json",
+        "clean/bench-09.json",
+        "clean/bench-10.json",
+        "clean/bench-11.json",
+        "clean/bench-12.json",
+        "clean/bench-13.json",
+        "clean/bench-14.json",
+        "clean/bench-15.json",
+        "clean/bench-16.json"
+      ]
+    }
+  }
+}
