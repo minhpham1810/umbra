@@ -1,6 +1,6 @@
 {
   "name": "umbra-engine",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Deterministic, headless 3D game engine for AI agents: Rapier physics, replayable runs, per-tick state hashes, navmesh, 2D and Three.js views.",
   "keywords": [
     "game-engine",

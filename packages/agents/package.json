@@ -1,6 +1,6 @@
 {
   "name": "umbra-agents",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Agent tools for umbra-engine: Playtester, Builder, Fixer, route and balance search, and an MCP server.",
   "keywords": [
     "ai-agents",

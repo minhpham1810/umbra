@@ -30,7 +30,7 @@ export interface StrategyGame<T> { name: string; schema: z.ZodType<T>; adapt(lev
 
 /** The Umbra tools. Pass `strategy` to also serve search.strategy for that game. */
 export function createServer<T>(opts: { strategy?: StrategyGame<T> } = {}): McpServer {
-  const server = new McpServer({ name: "umbra", version: "0.1.0" });
+  const server = new McpServer({ name: "umbra", version: "0.1.1" });
 
   server.registerTool("scene.validate", {
     description: "Check a scene against the schema. Returns {ok, errors[]}.",
