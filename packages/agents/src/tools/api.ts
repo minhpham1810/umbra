@@ -3,7 +3,7 @@
  * Each function here is served as an MCP tool by src/mcp.ts.
  */
 import { validateScene, type Scene } from "@umbra/engine";
-import { runSim, createSimulation, navBake, navPath, navDispose, BUTTON, IDLE_FRAME, type RunResult } from "@umbra/engine";
+import { runSim, createSimulation, navBake, navPath, navDispose, BUTTON, IDLE_FRAME, MovingPlatformPropsSchema, PLATFORM_HALF_Y, type RunResult } from "@umbra/engine";
 import type { InputFrame } from "@umbra/engine";
 import { randomUUID } from "node:crypto";
 import type { Replay, SimEvent } from "@umbra/engine";
@@ -121,61 +121,126 @@ export interface ReachResult {
   attempts: number;
 }
 
-type Point = { x: number; y: number; z: number };
+export type Point = { x: number; y: number; z: number };
 const CAPSULE_HALF_HEIGHT = 0.7; // matches the player capsule in buildWorld
 
+export interface TargetResult extends ReachResult {
+  /** Whether the navmesh had a route to `approach` (false: steered in a straight line). */
+  navRoute: boolean;
+}
+
+type RunOutcome = { outcome: RunResult["outcome"]; events: readonly SimEvent[] };
+
+/** One step of a steering program. */
+type Step =
+  | { go: Point } // walk toward a point
+  | { waitFor: number; at: Point } // stand still until platform `waitFor` is within 0.1 m of `at`
+  | { ride: number; until: Point }; // stand on platform `ride` until it is within 0.1 m of `until`
+
+const near = (a: Point, b: Point, d: number) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z) < d;
+const yawTo = (from: Point, to: Point) =>
+  ((Math.round((Math.atan2(to.x - from.x, to.z - from.z) / (2 * Math.PI)) * 256) % 256) + 256) % 256;
+
+async function navRouteTo(scene: Scene, from: Point, to: Point): Promise<Point[] | undefined> {
+  const { navmeshId } = await navBake(scene);
+  try {
+    const path = navPath(navmeshId, from, to);
+    return path.found ? path.waypoints.slice(1) : undefined;
+  } finally { navDispose(navmeshId); }
+}
+
 /**
- * Navmesh + physics reachability search. `budget` is the maximum number of sim runs.
- * Follows the navmesh route (or a straight line when there is none) with closed-loop
- * steering; attempt 0 never jumps, 1 holds jump, later ones jump once at tick 2·(n-2).
+ * Navmesh + physics search toward a point. `budget` is the maximum number of sim runs.
+ * Follows the navmesh route to `approach` (or a straight line when there is none), then
+ * heads for `target`, with closed-loop steering; attempt 0 never jumps, 1 holds jump,
+ * then each moving platform gets one ride attempt, then single jumps at tick 2·k.
+ * A run stops as soon as `hit` is true or it ends.
  * shortcut: one jump per attempt, so routes needing two separate jumps are missed;
  * upgrade to the edge-launch jump search in the Playtester spec when levels need it.
+ * shortcut: platforms are boarded only at their start cell and ridden once along x or z.
  * A hit counts only if a fresh runSim of the recorded inputs reproduces it.
  */
-export async function searchReach(scene: Scene, goalId: string, budget: number): Promise<ReachResult> {
-  const goal = scene.goals.find((g) => g.id === goalId);
-  if (!goal) throw new Error(`Unknown goal: ${goalId}`);
-  const target = { x: goal.pos.x + 0.5, y: goal.pos.y, z: goal.pos.z + 0.5 };
+export async function searchTarget(scene: Scene, approach: Point, target: Point, budget: number,
+  hit: (run: RunOutcome) => boolean): Promise<TargetResult> {
   const spawn = scene.spawn.pos;
-  const { navmeshId } = await navBake(scene);
-  let route: Point[];
-  try {
-    const path = navPath(navmeshId, { ...spawn, y: spawn.y - CAPSULE_HALF_HEIGHT }, target);
-    route = path.found ? path.waypoints.slice(1) : [];
-  } finally { navDispose(navmeshId); }
-  if (!route.length) route = [target];
-
-  let length = 0;
-  [spawn, ...route].reduce((a, b) => (length += Math.hypot(b.x - a.x, b.z - a.z), b));
-  const maxTicks = Math.ceil((length / 5) * 60 * 2) + 60; // 2x walking time at 5 m/s, plus slack
-  const reached = (events: readonly SimEvent[]) => events.some((e) => e.kind === "goal_reached" && e.goalId === goalId);
+  const foot = { ...spawn, y: spawn.y - CAPSULE_HALF_HEIGHT };
+  const route = await navRouteTo(scene, foot, approach);
+  const navRoute = route !== undefined;
+  const direct = [...(route ?? [approach]), ...(target !== approach ? [target] : [])];
+  const programs: { steps: Step[]; jump: "never" | "hold" | number }[] = [
+    { steps: direct.map((go) => ({ go })), jump: "never" },
+    { steps: direct.map((go) => ({ go })), jump: "hold" },
+  ];
+  const platforms = scene.pieces.filter((p) => p.kind === "moving_platform")
+    .sort((a, b) => a.pos.x - b.pos.x || a.pos.y - b.pos.y || a.pos.z - b.pos.z);
+  for (const [i, piece] of platforms.entries()) {
+    const { axis, distance } = MovingPlatformPropsSchema.parse(piece.props ?? {});
+    if (axis === "y") continue;
+    const top = piece.pos.y + 1;
+    const start = { x: piece.pos.x + 0.5, y: top - PLATFORM_HALF_Y, z: piece.pos.z + 0.5 };
+    const end = { ...start, [axis]: start[axis] + distance };
+    const board = { x: start.x, y: top, z: start.z, [axis]: start[axis] - 1 };
+    const exit = { x: end.x, y: top, z: end.z, [axis]: end[axis] + 1 };
+    const toBoard = await navRouteTo(scene, foot, board);
+    if (!toBoard) continue;
+    const onward = (await navRouteTo(scene, exit, approach)) ?? [approach];
+    programs.push({ jump: "never", steps: [
+      ...toBoard.map((go) => ({ go })),
+      { waitFor: i, at: start }, { go: { ...start, y: top } }, { ride: i, until: end },
+      { go: exit }, ...onward.map((go) => ({ go })), ...(target !== approach ? [{ go: target }] : []),
+    ] });
+  }
 
   let attempts = 0;
-  while (attempts < budget) {
-    const policy = attempts++;
-    const jumpTick = 2 * (policy - 2);
-    if (jumpTick >= maxTicks) break; // every single-jump timing has been tried
+  for (let k = 0; attempts < budget; k++) {
+    const program = programs[k] ?? { steps: programs[0]!.steps, jump: 2 * (k - programs.length) };
+    const pathLength = program.steps.reduce((acc, s) => ("go" in s ? { len: acc.len + Math.hypot(s.go.x - acc.at.x, s.go.z - acc.at.z), at: s.go } : acc),
+      { len: 0, at: spawn as Point }).len;
+    // 2x walking time at 5 m/s plus slack, plus up to two platform round trips per ride.
+    const maxTicks = Math.ceil((pathLength / 5) * 60 * 2) + 60 + (program.steps.length - direct.length > 0 ? 1200 : 0);
+    if (typeof program.jump === "number" && program.jump >= maxTicks) break; // every single-jump timing tried
+    attempts++;
     const inputs: InputFrame[] = [];
     const sim = await createSimulation(scene);
     try {
       let next = 0;
-      while (inputs.length < maxTicks && sim.outcome === "timeout" && !reached(sim.events)) {
+      while (inputs.length < maxTicks && sim.outcome === "timeout" && !hit(sim)) {
         const pos = sim.position();
-        let wp = route[next]!;
-        if (next < route.length - 1 && Math.hypot(wp.x - pos.x, wp.z - pos.z) < 0.35) wp = route[++next]!;
-        const yaw = ((Math.round((Math.atan2(wp.x - pos.x, wp.z - pos.z) / (2 * Math.PI)) * 256) % 256) + 256) % 256;
+        let step = program.steps[next]!;
+        const last = next === program.steps.length - 1;
+        if (!last && "go" in step && Math.hypot(step.go.x - pos.x, step.go.z - pos.z) < 0.35) step = program.steps[++next]!;
+        let buttons = 0;
+        let yaw = inputs.at(-1)?.yaw ?? 0;
+        if ("go" in step) {
+          // At the final point, stop: a player walking into a hole then drops straight down.
+          if (!(last && Math.hypot(step.go.x - pos.x, step.go.z - pos.z) < 0.2)) buttons = BUTTON.FORWARD;
+          yaw = yawTo(pos, step.go);
+        } else {
+          // Stand still (on the ground or the platform) until the platform reaches the point.
+          const plat = sim.platforms()["ride" in step ? step.ride : step.waitFor]!;
+          if (near(plat, "ride" in step ? step.until : step.at, 0.1)) next = Math.min(next + 1, program.steps.length - 1);
+        }
         const t = inputs.length;
-        const jump = policy === 1 || t === jumpTick ? BUTTON.JUMP : 0;
-        const frame = { buttons: BUTTON.FORWARD | jump, yaw };
+        if (program.jump === "hold" || program.jump === t) buttons |= BUTTON.JUMP;
+        const frame = { buttons, yaw };
         inputs.push(frame);
         sim.step(frame);
       }
-      if (!reached(sim.events)) continue;
+      if (!hit(sim)) continue;
     } finally { sim.dispose(); }
-    const check = await runSim({ scene, seed: 0, inputs, maxTicks: inputs.length });
-    if (reached(check.events)) return { reached: true, inputs, attempts };
+    if (hit(await runSim({ scene, seed: 0, inputs, maxTicks: inputs.length }))) return { reached: true, inputs, attempts, navRoute };
   }
-  return { reached: false, inputs: [], attempts };
+  return { reached: false, inputs: [], attempts, navRoute };
+}
+
+/** Navmesh + physics reachability search for one goal; see searchTarget. */
+export async function searchReach(scene: Scene, goalId: string, budget: number): Promise<ReachResult> {
+  const goal = scene.goals.find((g) => g.id === goalId);
+  if (!goal) throw new Error(`Unknown goal: ${goalId}`);
+  const target = { x: goal.pos.x + 0.5, y: goal.pos.y, z: goal.pos.z + 0.5 };
+  const { reached, inputs, attempts } = await searchTarget(scene, target, target, budget,
+    (run) => run.events.some((e) => e.kind === "goal_reached" && e.goalId === goalId));
+  return { reached, inputs, attempts };
 }
 
 export { navBake, navPath, navDispose } from "@umbra/engine";

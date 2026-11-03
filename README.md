@@ -113,6 +113,30 @@ search. `scene.write` only writes `.json` files inside `UMBRA_SCENES_DIR`
 (default: the working directory); replays go to `UMBRA_REPLAYS_DIR` (default
 `./replays`). Navmesh IDs live until the server exits.
 
+## Playtester
+
+```sh
+pnpm --silent --filter @umbra/agents playtest games/lantern/src/level-2.json
+```
+
+Prints a JSON report and exits 1 when it finds bugs. Each test goal is checked with
+the navmesh first and then proved in the simulator:
+
+| Bug type | How it is found |
+| --- | --- |
+| `unreachable_goal` | `searchTarget` fails to reach the goal (walk, held jump, platform rides, jump timings) |
+| `fall_through` | Walking into an unmarked hole inside the level ends out of bounds in that cell |
+| `out_of_bounds` | Same, at the level's edge (for example, jumping a one-block wall) |
+
+Mark intended gaps with `pit` pieces; unmarked holes are reported. Fall findings
+save a replay under `UMBRA_REPLAYS_DIR` that reproduces on a fresh run.
+
+With `GEMINI_API_KEY` set, Gemini plans which tests to run and in what order
+(model `GEMINI_MODEL`, default `gemini-3.8-flash`; check the free-tier list on
+Google's pricing page). Its JSON plan is schema-checked and may only name goals in
+the scene. Without a key, every goal and the fall check run. Softlock and
+trivial-skip checks are not implemented yet.
+
 ## Layout and current scope
 
 | Path | Purpose |

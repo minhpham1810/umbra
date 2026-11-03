@@ -19,11 +19,11 @@ An agent that hunts for unreachable goals, softlocks, fall-throughs and trivial 
 - `trivial_skip`
 
 ## Requirements (v2-kiroween)
-- [ ] LLM plans test goals from scene goals list.
-- [ ] Navmesh check runs first (cheap).
-- [ ] Physics proof confirms or clears navmesh verdict.
-- [ ] Each finding includes: bug type, goal ID, replay ID, tick of failure.
-- [ ] Budget parameters: maxTicks, maxRuns, maxTokens, wallClockMs.
+- [x] LLM plans test goals from scene goals list (Gemini, `GEMINI_API_KEY`; default plan without a key).
+- [x] Navmesh check runs first (cheap); its verdict is kept on each finding as `navRoute`.
+- [x] Physics proof confirms or clears navmesh verdict.
+- [x] Each finding includes: bug type, goal ID, replay ID, tick of failure (no replay for unreachable goals).
+- [x] Budget parameters: maxRuns, wallClockMs, Gemini maxOutputTokens; ticks per run scale with route length.
 
 ## Acceptance
 On the seeded-bug benchmark: detection recall ≥ 0.8, false alarm rate ≤ 0.1.
