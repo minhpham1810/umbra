@@ -1,7 +1,10 @@
-export * from "./ecs/types.js";
+// The generic core: entities, components, systems, seeded randomness, hashing, replays, scenes.
+export * from "./core/index.js";
+// Zod, re-exported so component and input schemas use the same Zod as the engine.
+export { z } from "zod";
+// The kit-scene platformer runtime (to be rebuilt on the core as optional modules).
 export * from "./input/types.js";
 export * from "./scene/schema.js";
-export * from "./hash/state.js";
 export * from "./replay/types.js";
 export * from "./physics/world.js";
 export * from "./sim/runner.js";

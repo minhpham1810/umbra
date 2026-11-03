@@ -5,7 +5,7 @@
  * compares every per-tick state hash.
  *
  * Run:  pnpm --filter umbra-engine browser-hash-check [--with <module.ts>]...
- * A --with module (path from the repo root) exports `cases: { name, run(): number }[]`:
+ * A --with module (path from the repo root) exports `cases: { name, run(): number | Promise<number> }[]`:
  * each run() is called in both places and must return the same hash. Games use it
  * for their own sims, e.g. games/boo-and-co/src/sim/hash-cases.ts.
  * Needs: pnpm --filter umbra-engine exec playwright install chromium
@@ -38,7 +38,7 @@ for (const dir of ["games/lantern/src", "benchmark/levels/clean", "benchmark/lev
 const cases = scenes.flatMap(([name, scene]) => [1, 2, 3].map((seed) => ({ name: `${name}#${seed}`, scene, seed, inputs: inputs(seed) })));
 
 const extras = process.argv.flatMap((a, i) => (process.argv[i - 1] === "--with" ? [resolve(REPO_ROOT, a)] : []));
-const extraCases: { name: string; run(): number }[] = [];
+const extraCases: { name: string; run(): number | Promise<number> }[] = [];
 for (const file of extras) extraCases.push(...((await import(file)) as { cases: typeof extraCases }).cases);
 
 const bundle = await build({
@@ -64,11 +64,11 @@ try {
   // --with modules: each case's run() in the browser, then in Node.
   const webExtras = await page.evaluate(async () => {
     // @ts-expect-error Umbra is the IIFE global from the bundle
-    const mods = await Promise.all(globalThis.Umbra.extras) as { cases: { run(): number }[] }[];
-    return mods.flatMap((m) => m.cases.map((c) => c.run()));
+    const mods = await Promise.all(globalThis.Umbra.extras) as { cases: { run(): number | Promise<number> }[] }[];
+    return Promise.all(mods.flatMap((m) => m.cases.map((c) => c.run())));
   });
   for (const [i, c] of extraCases.entries()) {
-    const node = c.run();
+    const node = await c.run();
     if (webExtras[i] !== node) { console.error(`DIVERGED ${c.name}: node=${node} browser=${webExtras[i]}`); failed++; }
     else console.log(`OK       ${c.name}  hash=${node}`);
   }

@@ -4,6 +4,11 @@ A deterministic, headless 3D game engine for AI agents. The same scene and input
 always give the same run, tick for tick, in Node and in the browser, so every run is a
 replay an agent can save, share and check.
 
+- **Generic core:** `defineGame` with components (Zod schemas), systems in ordered
+  phases, a game-defined input, events, resources and a seeded RNG; `runGame`,
+  checkpoints (`save` / `load`), replays (`recordReplay` / `verifyReplay`) and scene
+  files with prefabs (`spawnScene`). See the example in the repository's
+  `packages/engine/examples/snake`.
 - **Physics:** Rapier 3D (pinned to 0.12.0), a kinematic character controller, moving
   platforms, pushable crates, goal sensors.
 - **Scenes as data:** JSON kit pieces on a 1 m grid (floor, wall, pit, moving platform,
@@ -17,6 +22,27 @@ replay an agent can save, share and check.
 ```sh
 npm install umbra-engine
 ```
+
+```ts
+import { defineComponent, defineGame, runGame, z } from "umbra-engine";
+
+const Counter = defineComponent("counter", z.number().int());
+
+// Each tick's input is added to every counter; reaching 10 wins.
+const adder = defineGame({
+  name: "adder",
+  input: z.number().int(),
+  components: [Counter],
+  setup: (world) => { world.spawn(Counter(0)); },
+  systems: [function add(world, n) { for (const [e, v] of world.query(Counter)) world.set(e, Counter, v + n); }],
+  outcome: (world) => (world.first(Counter)![1] >= 10 ? "win" : undefined),
+});
+
+const r = await runGame(adder, null, { seed: 0, inputs: [3, 3, 3, 3] });
+console.log(r.outcome, r.ticks, r.finalStateHash); // "win" 4, and the same hash everywhere
+```
+
+The kit-scene platformer runtime (used by the Lantern demo) runs a level headlessly:
 
 ```ts
 import { BUTTON, SceneSchema, runSim } from "umbra-engine";
