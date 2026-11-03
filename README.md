@@ -155,6 +155,24 @@ is no add-pit edit, so a hole cannot be fixed by marking it intended. The CLI
 writes the scene, prints the build, fixes and unresolved findings, and exits 1 if
 any remain.
 
+## Studio
+
+```sh
+pnpm --filter @umbra/studio dev
+```
+
+A browser replay viewer. It re-simulates a replay with the real engine, compares
+the final state hash with the saved one (a green badge means the run reproduced
+exactly), and plays it back in 3D with an orbit camera, the player's path as a
+trail, a scrubber, speed control and a clickable event list. Space plays or pauses;
+the arrow keys step one tick. Open a replay with the file button, by dropping a JSON
+file, or with `?replay=<url>`. Replay files are validated before they run.
+
+Bundled samples live in `apps/studio/public/replays/` (a win on each Lantern level
+and a Playtester fall-through finding). Regenerate them with
+`pnpm --filter @umbra/studio samples`. Replays saved by the Playtester carry the
+finding as their `note`, which Studio shows.
+
 ## Layout and current scope
 
 | Path | Purpose |
@@ -163,7 +181,7 @@ any remain.
 | `packages/agents` | Typed scene, simulation, replay, and navigation tools |
 | `games/lantern` | Playable Three.js level |
 | `games/boo-and-co` | Stub for the second game |
-| `apps/studio` | Stub for replay viewing |
+| `apps/studio` | Replay viewer |
 | `benchmark` | Seed scenes and mutation stub |
 | `.kiro` | Specs, steering, and hooks |
 

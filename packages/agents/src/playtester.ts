@@ -95,8 +95,8 @@ export async function playtest(scene: Scene, opts: PlaytestOptions = {}): Promis
   const skipped: TestGoal[] = [];
   let simRuns = 0;
 
-  const save = async (inputs: Parameters<typeof replaySave>[2]) =>
-    opts.saveReplays ? await replaySave(scene, 0, inputs) : undefined;
+  const save = async (inputs: Parameters<typeof replaySave>[2], note: string) =>
+    opts.saveReplays ? await replaySave(scene, 0, inputs, note) : undefined;
 
   for (const goal of plan) {
     if (Date.now() > deadline) { skipped.push(goal); continue; }
@@ -123,11 +123,12 @@ export async function playtest(scene: Scene, opts: PlaytestOptions = {}): Promis
           e.kind === "out_of_bounds" && e.pos && Math.floor(e.pos.x) === hole.x && Math.floor(e.pos.z) === hole.z));
         simRuns += r.attempts;
         if (r.reached) {
-          const replayId = await save(r.inputs);
-          findings.push({ type: hole.edge ? "out_of_bounds" : "fall_through", cell: { x: hole.x, y: hole.floorY - 1, z: hole.z },
-            navRoute: r.navRoute, tick: r.inputs.length, ...(replayId ? { replayId } : {}),
-            detail: hole.edge ? `The player escapes over the level's edge at (${hole.x}, ${hole.z}).`
-              : `The player falls out of the level through unmarked hole (${hole.x}, ${hole.z}).` });
+          const type = hole.edge ? "out_of_bounds" : "fall_through";
+          const detail = hole.edge ? `The player escapes over the level's edge at (${hole.x}, ${hole.z}).`
+            : `The player falls out of the level through unmarked hole (${hole.x}, ${hole.z}).`;
+          const replayId = await save(r.inputs, `${type}: ${detail}`);
+          findings.push({ type, cell: { x: hole.x, y: hole.floorY - 1, z: hole.z },
+            navRoute: r.navRoute, tick: r.inputs.length, ...(replayId ? { replayId } : {}), detail });
         }
       }
     }

@@ -1,0 +1,17 @@
+[
+  {
+    "file": "lantern-1-win.json",
+    "title": "Lantern 1: jump the gap",
+    "note": "searchReach found a winning route: walk, then jump the broken floor."
+  },
+  {
+    "file": "lantern-2-ride.json",
+    "title": "Lantern 2: ride the ferry",
+    "note": "searchReach found a route across the chasm using the moving platform."
+  },
+  {
+    "file": "lantern-1-fall-through.json",
+    "title": "Bug: fall-through",
+    "note": "fall_through: The player falls out of the level through unmarked hole (0, 4)."
+  }
+]

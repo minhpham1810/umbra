@@ -74,8 +74,8 @@ export function createServer(): McpServer {
 
   server.registerTool("replay.save", {
     description: "Run and save a replay under UMBRA_REPLAYS_DIR. Returns {replayId}.",
-    inputSchema: run,
-  }, async ({ scene, seed, inputs }) => json({ replayId: await replaySave(scene, seed, inputs) }));
+    inputSchema: { ...run, note: z.string().max(500).optional() },
+  }, async ({ scene, seed, inputs, note }) => json({ replayId: await replaySave(scene, seed, inputs, note) }));
 
   return server;
 }

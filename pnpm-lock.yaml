@@ -17,9 +17,6 @@ importers:
 
   apps/studio:
     dependencies:
-      '@umbra/agents':
-        specifier: workspace:*
-        version: link:../../packages/agents
       '@umbra/engine':
         specifier: workspace:*
         version: link:../../packages/engine
@@ -27,6 +24,15 @@ importers:
         specifier: ^0.169.0
         version: 0.169.0
     devDependencies:
+      '@types/three':
+        specifier: ^0.169.0
+        version: 0.169.0
+      '@umbra/agents':
+        specifier: workspace:*
+        version: link:../../packages/agents
+      tsx:
+        specifier: 4.19.2
+        version: 4.19.2
       typescript:
         specifier: ^5.6.3
         version: 5.9.3

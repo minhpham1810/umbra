@@ -4,15 +4,18 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "typecheck": "tsc --noEmit"
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "samples": "tsx scripts/make-samples.ts"
   },
   "dependencies": {
     "@umbra/engine": "workspace:*",
-    "@umbra/agents": "workspace:*",
     "three": "^0.169.0"
   },
   "devDependencies": {
+    "@types/three": "^0.169.0",
+    "@umbra/agents": "workspace:*",
+    "tsx": "4.19.2",
     "typescript": "^5.6.3",
     "vite": "^5.4.10"
   }
