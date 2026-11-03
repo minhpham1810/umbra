@@ -7,7 +7,7 @@
  * - Fixed timestep: dt = 1/60 always.
  */
 import RAPIER from "@dimforge/rapier3d-compat";
-import type { Scene, KitPiece } from "../scene/schema.js";
+import { MovingPlatformPropsSchema, type Scene, type KitPiece } from "../scene/schema.js";
 import type { EntityId } from "../ecs/types.js";
 
 export const FIXED_DT = 1 / 60;
@@ -21,6 +21,26 @@ export interface PhysicsHandles {
   playerCollider: RAPIER.ColliderHandle;
   /** collider handle → goal entity id for trigger sensors */
   goalSensors: Map<RAPIER.ColliderHandle, EntityId>;
+  /** Moving platforms in construction order. */
+  platforms: Platform[];
+}
+
+export interface Platform {
+  body: RAPIER.RigidBodyHandle;
+  collider: RAPIER.ColliderHandle;
+  /** Body centre at tick 0. */
+  origin: { x: number; y: number; z: number };
+  axis: "x" | "y" | "z";
+  distance: number;
+  /** Ticks for one leg of the trip (rounded, so always an integer). */
+  legTicks: number;
+}
+
+/** Platform body centre after `tick` ticks: a triangle wave, from integer tick math only. */
+export function platformPosition(p: Platform, tick: number) {
+  const phase = tick % (2 * p.legTicks);
+  const leg = phase <= p.legTicks ? phase : 2 * p.legTicks - phase;
+  return { ...p.origin, [p.axis]: p.origin[p.axis] + (p.distance * leg) / p.legTicks };
 }
 
 let rapierReady = false;
@@ -59,13 +79,21 @@ export function buildWorld(scene: Scene): { world: PhysicsWorld; handles: Physic
     const body = world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(x + HALF, y + half, z + HALF));
     world.createCollider(RAPIER.ColliderDesc.cuboid(HALF, half, HALF), body);
   }
+  // Pits have no collider. Platform slabs sit flush with floor tops at the same grid y.
+  const platforms: Platform[] = [];
   for (const piece of sorted) {
-    if (!SOLID.has(piece.kind)) addPiece(world, piece);
+    if (piece.kind !== "moving_platform") continue;
+    const { axis, distance, speed } = MovingPlatformPropsSchema.parse(piece.props ?? {});
+    const origin = { x: piece.pos.x + HALF, y: piece.pos.y + 1 - PLATFORM_HALF_Y, z: piece.pos.z + HALF };
+    const body = world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(origin.x, origin.y, origin.z));
+    const collider = world.createCollider(RAPIER.ColliderDesc.cuboid(HALF, PLATFORM_HALF_Y, HALF), body);
+    platforms.push({ body: body.handle, collider: collider.handle, origin, axis, distance,
+      legTicks: Math.max(1, Math.round((distance / speed) / FIXED_DT)) });
   }
 
   // Goal sensors — one cuboid per goal, kinematic static.
   const goalSensors = new Map<RAPIER.ColliderHandle, EntityId>();
-  const sortedGoals = [...scene.goals].sort((a, b) => a.id.localeCompare(b.id));
+  const sortedGoals = [...scene.goals].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
   for (let i = 0; i < sortedGoals.length; i++) {
     const g = sortedGoals[i]!;
     const body = world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(g.pos.x + 0.5, g.pos.y + 0.5, g.pos.z + 0.5));
@@ -90,31 +118,12 @@ export function buildWorld(scene: Scene): { world: PhysicsWorld; handles: Physic
 
   world.updateSceneQueries();
 
-  return { world, handles: { playerBody: playerBody.handle, playerCollider: playerCollider.handle, goalSensors } };
+  return { world, handles: { playerBody: playerBody.handle, playerCollider: playerCollider.handle, goalSensors, platforms } };
 }
 
 // ── piece geometry ────────────────────────────────────────────────────────────
 
 const HALF = 0.5; // all pieces are 1 m³ blocks
+export const PLATFORM_HALF_Y = 0.125;
 // Ramps and stairs are still placeholder cubes.
 const SOLID = new Set<KitPiece["kind"]>(["floor", "wall", "stairs", "ramp"]);
-
-/** Non-solid pieces; solid blocks are merged into columns in buildWorld. */
-function addPiece(world: PhysicsWorld, piece: KitPiece): void {
-  switch (piece.kind) {
-    case "pit":
-      // Pits are gaps — no collider; out-of-bounds check handles falling.
-      break;
-    case "moving_platform": {
-      const speed: number = typeof piece.props?.["speed"] === "number" ? (piece.props["speed"] as number) : 1;
-      // Store speed on the body's user data so the tick loop can move it.
-      const body = world.createRigidBody(
-        RAPIER.RigidBodyDesc.kinematicPositionBased()
-          .setTranslation(piece.pos.x + HALF, piece.pos.y + HALF, piece.pos.z + HALF)
-          .setUserData({ speed, origin: { ...piece.pos } }),
-      );
-      world.createCollider(RAPIER.ColliderDesc.cuboid(HALF, HALF * 0.25, HALF), body);
-      break;
-    }
-  }
-}

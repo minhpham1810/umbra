@@ -18,7 +18,7 @@ A headless, deterministic 3D simulation that turns `(scene, seed, inputs[]) → 
 
 ### Should (v2-kiroween, Dec 4)
 - [x] Sensor colliders as triggers (goal pickup, hazard zones).
-- [ ] Moving platform support (kinematic body on a path).
+- [x] Moving platform support (kinematic body on a path).
 - [x] Out-of-bounds detection (player below `y = -10`).
 - [x] Browser hash test via Playwright.
 

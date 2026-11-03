@@ -14,7 +14,7 @@ import type { Scene } from "../scene/schema.js";
 import type { SimEvent, SimOutcome } from "../replay/types.js";
 import { createWorld } from "../ecs/types.js";
 import { hashWorld } from "../hash/state.js";
-import { initRapier, buildWorld, FIXED_DT } from "../physics/world.js";
+import { initRapier, buildWorld, platformPosition, FIXED_DT, PLATFORM_HALF_Y } from "../physics/world.js";
 
 export interface RunResult {
   outcome: SimOutcome;
@@ -34,6 +34,7 @@ export interface RunOptions {
 const OUT_OF_BOUNDS_Y = -10;
 const PLAYER_SPEED = 5; // m/s — integer-friendly, no float constants into Rapier
 const JUMP_IMPULSE = 8; // m/s initial vy
+const CAPSULE_HALF_HEIGHT = 0.7; // capsule(0.4, 0.3) in buildWorld
 
 export async function createSimulation(scene: Scene) {
   await initRapier();
@@ -51,6 +52,7 @@ export async function createSimulation(scene: Scene) {
   let grounded = true;
   let verticalVelocity = 0; // integer-only, in m/s
   let lastMove = { x: 0, y: 0, z: 0 };
+  let riding = -1; // index of the platform the player stood on after the last tick
 
   const playerBody = physWorld.getRigidBody(handles.playerBody)!;
   const charCtrl = physWorld.createCharacterController(0.01);
@@ -88,15 +90,35 @@ export async function createSimulation(scene: Scene) {
     verticalVelocity = Math.round((verticalVelocity - 20 * FIXED_DT) * 1000) / 1000;
     const moveY = verticalVelocity * FIXED_DT;
 
+    // ── 1. platforms: move to their tick+1 positions, carry the rider ───────
+    let carry = { x: 0, y: 0, z: 0 };
+    for (const [i, p] of handles.platforms.entries()) {
+      const now = platformPosition(p, tick);
+      const next = platformPosition(p, tick + 1);
+      // Teleport, not setNextKinematicTranslation: a body velocity makes Rapier's controller
+      // add its own, inconsistent platform friction on top of the carry below.
+      physWorld.getRigidBody(p.body)!.setTranslation(next, true);
+      if (i === riding) carry = { x: next.x - now.x, y: next.y - now.y, z: next.z - now.z };
+    }
+
     // ── 2. character controller move ─────────────────────────────────────────
     const playerCollider = physWorld.getCollider(handles.playerCollider)!;
+    if (handles.platforms.length) {
+      // The rider moves rigidly with its platform before its own move.
+      // shortcut: the carry is not collision-checked, so a platform can push its rider
+      // into a wall; sweep it through the controller if levels put walls on platform paths.
+      const p = playerBody.translation();
+      playerBody.setTranslation({ x: p.x + carry.x, y: p.y + carry.y, z: p.z + carry.z }, true);
+      // Scene queries only refresh inside step(); the controller must see the moved bodies.
+      physWorld.updateSceneQueries();
+    }
     charCtrl.computeColliderMovement(playerCollider, { x: moveX, y: moveY, z: moveZ }, RAPIER.QueryFilterFlags.EXCLUDE_SENSORS, undefined, (collider) => !collider.isSensor());
     const computed = charCtrl.computedMovement();
 
     grounded = charCtrl.computedGrounded();
     if (grounded) verticalVelocity = Math.min(0, verticalVelocity);
 
-    lastMove = { x: computed.x, y: computed.y, z: computed.z };
+    lastMove = { x: computed.x + carry.x, y: computed.y + carry.y, z: computed.z + carry.z };
     const pos = playerBody.translation();
     playerBody.setNextKinematicTranslation({
       x: pos.x + computed.x,
@@ -106,6 +128,13 @@ export async function createSimulation(scene: Scene) {
 
     // ── 3. step physics ───────────────────────────────────────────────────────
     physWorld.step(eventQueue);
+
+    const after = playerBody.translation();
+    riding = grounded ? handles.platforms.findIndex((p) => {
+      const c = platformPosition(p, tick + 1);
+      return Math.abs(after.x - c.x) < 0.7 && Math.abs(after.z - c.z) < 0.7 &&
+        Math.abs(after.y - CAPSULE_HALF_HEIGHT - (c.y + PLATFORM_HALF_Y)) < 0.1;
+    }) : -1;
 
     // ── 4. collision events → goal checks ────────────────────────────────────
     eventQueue.drainCollisionEvents((h1, h2, started) => {
@@ -153,6 +182,8 @@ export async function createSimulation(scene: Scene) {
     get grounded() { return grounded; },
     get tick() { return tick; },
     get events(): readonly SimEvent[] { return events; },
+    /** Platform body centres, in scene construction order. */
+    platforms: () => handles.platforms.map((p) => platformPosition(p, tick)),
     get outcome() { return outcome; },
     result: (): RunResult => ({ outcome, finalStateHash: tickHashes.at(-1) ?? 0,
       events: [...events], tickHashes: [...tickHashes] }),

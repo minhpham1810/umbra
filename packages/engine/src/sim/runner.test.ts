@@ -148,3 +148,43 @@ it("holding jump against a stacked wall cannot climb it", async () => {
     expect(maxY).toBeLessThan(3.5); // a single jump peaks near 2.6; climbing would exceed the wall top at 4
   } finally { sim.dispose(); }
 });
+
+it("moving platforms ping-pong and carry the player across Lantern's chasm", async () => {
+  const { readFileSync } = await import("node:fs");
+  const { SceneSchema } = await import("../scene/schema.js");
+  const scene = SceneSchema.parse(JSON.parse(readFileSync(
+    new URL("../../../../games/lantern/src/level-2.json", import.meta.url), "utf8")));
+  // Closed loop: walk to the edge, board when the platform arrives, ride, step off at the far end.
+  const sim = await createSimulation(scene);
+  const inputs: InputFrame[] = [];
+  const seen: number[] = [];
+  try {
+    while (inputs.length < 900 && sim.outcome === "timeout") {
+      const p = sim.position();
+      const plat = sim.platforms()[0]!;
+      seen.push(plat.z);
+      const go = p.z < 5.4 || (p.z < 6.2 ? plat.z < 6.6 : p.z >= 11.3 || plat.z > 11.3);
+      const frame = { buttons: go ? BUTTON.FORWARD : 0, yaw: 0 };
+      inputs.push(frame);
+      sim.step(frame);
+    }
+    expect(sim.outcome).toBe("win");
+  } finally { sim.dispose(); }
+  // Travels origin → origin + distance and back: 5 cells at 1.5 m/s = 200 ticks per leg.
+  expect(seen[0]).toBe(6.5);
+  expect(seen[200]).toBe(11.5);
+  expect(seen[400]).toBe(6.5);
+  const replay = await runSim({ scene, seed: 1, inputs, maxTicks: inputs.length });
+  expect(replay.outcome).toBe("win");
+  const walking = await runSim({ scene, seed: 1, maxTicks: 300,
+    inputs: Array.from({ length: 300 }, () => ({ buttons: BUTTON.FORWARD, yaw: 0 })) });
+  expect(walking.outcome).toBe("out_of_bounds");
+});
+
+it("rejects invalid moving platform props", async () => {
+  const { validateScene } = await import("../scene/schema.js");
+  const result = validateScene({ ...FLAT_SCENE, pieces: [{ kind: "moving_platform", pos: { x: 0, y: 0, z: 0 },
+    props: { axis: "w", distance: 0 } }] });
+  expect(result.ok).toBe(false);
+  if (!result.ok) expect(result.errors.join()).toMatch(/props\.axis.*props\.distance|props\.distance.*props\.axis/);
+});

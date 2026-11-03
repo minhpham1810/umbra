@@ -1,11 +1,16 @@
 import * as THREE from "three";
 import { BUTTON, FIXED_DT, SceneSchema, createSimulation } from "@umbra/engine";
-import rawLevel from "./level.json";
+import level1 from "./level.json";
+import level2 from "./level-2.json";
 
 const canvas = document.querySelector<HTMLCanvasElement>("canvas")!;
 const status = document.querySelector<HTMLElement>("#status")!;
 const restart = document.querySelector<HTMLButtonElement>("#restart")!;
-const level = SceneSchema.parse(rawLevel);
+const levels = [level1, level2];
+const requested = Number(new URLSearchParams(location.search).get("level"));
+const levelIndex = Number.isInteger(requested) && requested >= 1 && requested <= levels.length ? requested - 1 : 0;
+const level = SceneSchema.parse(levels[levelIndex]);
+const hasNext = levelIndex + 1 < levels.length;
 
 async function start() {
   let sim = await createSimulation(level);
@@ -23,14 +28,24 @@ async function start() {
   const floor = new THREE.MeshStandardMaterial({ color: 0x555564, roughness: 0.95 });
   const wall = new THREE.MeshStandardMaterial({ color: 0x343744, roughness: 0.95 });
   for (const piece of level.pieces) {
-    if (piece.kind === "pit") continue;
+    if (piece.kind === "pit" || piece.kind === "moving_platform") continue;
     const mesh = new THREE.Mesh(box, piece.kind === "wall" ? wall : floor);
     mesh.position.set(piece.pos.x + 0.5, piece.pos.y + 0.5, piece.pos.z + 0.5);
-    if (piece.kind === "moving_platform") mesh.scale.y = 0.25;
     mesh.receiveShadow = true;
     mesh.castShadow = true;
     scene.add(mesh);
   }
+  // One mesh per platform, in the order sim.platforms() reports them.
+  const platformMeshes = sim.platforms().map(() => {
+    const mesh = new THREE.Mesh(box, floor);
+    mesh.scale.y = 0.25;
+    mesh.receiveShadow = true;
+    mesh.castShadow = true;
+    scene.add(mesh);
+    return mesh;
+  });
+  let platformsBefore = sim.platforms();
+  let platformsNow = platformsBefore;
   const playerGeometry = new THREE.CapsuleGeometry(0.3, 0.8, 4, 12);
   const playerMaterial = new THREE.MeshStandardMaterial({ color: 0xc8c4b5, roughness: 0.85 });
   const player = new THREE.Mesh(playerGeometry, playerMaterial);
@@ -62,7 +77,8 @@ async function start() {
   const previous = current.clone();
   const lookAt = new THREE.Vector3();
   const cameraTarget = new THREE.Vector3();
-  const playingText = "Reach the green exit. Jump across the broken floor.";
+  const playingText = levelIndex === 0 ? "Reach the green exit. Jump across the broken floor."
+    : "Reach the green exit. Ride the moving platform across the chasm.";
   status.textContent = playingText;
 
   const resize = () => {
@@ -79,6 +95,7 @@ async function start() {
       keys.add(event.code);
     }
     if (event.code === "KeyR" && !event.repeat) void reset();
+    if (event.code === "KeyN" && !event.repeat && hasNext && sim.outcome === "win") location.search = `?level=${levelIndex + 2}`;
   }, options);
   window.addEventListener("keyup", (event) => keys.delete(event.code), options);
   window.addEventListener("blur", () => keys.clear(), options);
@@ -106,6 +123,7 @@ async function start() {
       sim.dispose(); sim = next;
       yaw = level.spawn.yaw;
       current.copy(sim.position()); previous.copy(current);
+      platformsBefore = platformsNow = sim.platforms();
       accumulator = 0; lastTime = performance.now();
       status.textContent = playingText;
     } catch (error) { status.textContent = `Restart failed: ${String(error)}`; }
@@ -126,13 +144,19 @@ async function start() {
         if (keys.has("KeyS")) buttons |= BUTTON.BACK;
         if (keys.has("Space")) buttons |= BUTTON.JUMP;
         previous.copy(current);
+        platformsBefore = platformsNow;
         sim.step({ buttons, yaw: Math.round(yaw) % 256 });
         current.copy(sim.position());
+        platformsNow = sim.platforms();
         accumulator -= FIXED_DT;
       }
     }
-    player.position.lerpVectors(previous, current,
-      sim.outcome === "timeout" ? accumulator / FIXED_DT : 1);
+    const alpha = sim.outcome === "timeout" ? accumulator / FIXED_DT : 1;
+    player.position.lerpVectors(previous, current, alpha);
+    platformMeshes.forEach((mesh, i) => {
+      const a = platformsBefore[i]!, b = platformsNow[i]!;
+      mesh.position.set(a.x + (b.x - a.x) * alpha, a.y + (b.y - a.y) * alpha, a.z + (b.z - a.z) * alpha);
+    });
     const radians = yaw / 256 * Math.PI * 2;
     cameraTarget.set(player.position.x - Math.sin(radians) * 4,
       player.position.y + 2.6, player.position.z - Math.cos(radians) * 4);
@@ -141,7 +165,8 @@ async function start() {
     camera.lookAt(lookAt);
     lantern.position.copy(player.position); lantern.position.y += 1.2;
     if (sim.outcome !== "timeout") {
-      const message = sim.outcome === "win" ? "You found the exit. Play again?" : "You fell into the dark. Try again.";
+      const message = sim.outcome !== "win" ? "You fell into the dark. Try again."
+        : hasNext ? "You found the exit. Press N for the next level." : "You found the last exit. Play again?";
       if (status.textContent !== message) status.textContent = message;
     }
     renderer.render(scene, camera);
