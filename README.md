@@ -1,7 +1,8 @@
 # Umbra
 
 A TypeScript 3D engine for games and headless agent runs. Rapier owns physics;
-Three.js draws Lantern. Browser play and `runSim` use the same fixed 60 Hz loop.
+the games draw with Three.js, or with the engine's Canvas 2D views (`?view=2d`).
+Browser play and `runSim` use the same fixed 60 Hz loop.
 
 ## Run Lantern
 
@@ -31,6 +32,12 @@ Open a level directly with `?level=2`, or a generated one with `?scene=<name>` (
 Keyboard controls work without mouse capture. A desktop browser with WebGL
 and a keyboard is required; touch controls are not implemented.
 
+Add `?view=2d` (for example `?level=2&view=2d`) to play as a side-scroller drawn
+by the engine's Canvas 2D view, without WebGL: A / D walk left and right, W or Space
+jumps. The simulation is the same, so a 2D run and a 3D run with the same inputs have
+the same state hashes. The side view flattens the corridor's width, so it suits
+straight corridors like Lantern's; depth cells with holes are drawn fainter.
+
 ## Run Boo & Co.
 
 ```sh
@@ -43,7 +50,8 @@ double scare for whoever steps on it, every 6 seconds) and click floor tiles to
 build. Hit the scare quota before the day ends. Mouse only; drag to orbit, scroll
 to zoom, Space pauses, and 1×–8× sets the speed. Visitors who get scared enough
 flee back to the entrance, and in a one-wide hallway they can jam against new
-arrivals; the HUD counts stuck visitors.
+arrivals; the HUD counts stuck visitors. `?view=2d` draws the mansion with the
+engine's flat top-down Canvas 2D view instead of Three.js; clicks build the same way.
 
 The simulation (`packages/engine/src/mansion`) is integer-only on a grid with one
 visitor per cell, instead of the navmesh crowds in the design, so it is
@@ -250,7 +258,7 @@ pnpm --filter @umbra/benchmark bench
 
 | Path | Purpose |
 | --- | --- |
-| `packages/engine` | Physics, scene schema, replay loop, hashing, navigation |
+| `packages/engine` | Physics, scene schema, replay loop, hashing, navigation, Canvas 2D views |
 | `packages/agents` | Typed scene, simulation, replay, and navigation tools |
 | `games/lantern` | Playable Three.js level |
 | `games/boo-and-co` | Playable haunted-mansion management sim |
