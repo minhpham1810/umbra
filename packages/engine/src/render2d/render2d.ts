@@ -1,11 +1,10 @@
 /**
- * Canvas 2D views of the engine's two sims: a side view of a kit scene (platformers) and
- * a top-down view of a mansion. Drawing only; the sims are untouched, so replays and
+ * Canvas 2D views: a side view of a kit scene (platformers) and a top-down view of any
+ * tile grid (management sims). Drawing only; the sims are untouched, so replays and
  * state hashes are the same whether a game draws in 2D or 3D.
  */
 import { CRATE_HALF, PLATFORM_HALF_Y } from "../physics/world.js";
 import type { Scene } from "../scene/schema.js";
-import type { Build, Mansion } from "../mansion/mansion.js";
 
 /**
  * The slice of CanvasRenderingContext2D the views use, spelled out so the engine still
@@ -112,48 +111,49 @@ export function drawSceneSide(ctx: Ctx2D, size: { w: number; h: number }, layout
   ctx.fillRect(...rect(frame.player[layout.axis] - 0.3, frame.player.y + 0.7, 0.6, 1.4)); // capsule(0.4, 0.3)
 }
 
-// ── top-down view of a mansion ──────────────────────────────────────────────
+// ── top-down view of a tile grid ────────────────────────────────────────────
 
-export interface MansionFrame {
-  /** Visitor positions in cells; may be fractional while a game eases them between tiles. */
-  visitors: readonly { x: number; y: number; fear: number; fleeing: boolean }[];
-  builds: readonly Pick<Build, "kind" | "x" | "y">[];
-  /** Highlight `range` tiles around a hovered cell. */
-  hover?: { x: number; y: number; range: number };
+/** A tile grid: one character per tile, coloured by `colors` (unknown characters are skipped). */
+export interface Grid2D { tiles: readonly string[]; colors: Readonly<Record<string, string>>; background: string }
+
+/** A round marker on a tile (a unit, a build); x and y may be fractional while a game eases them. */
+export interface GridMarker { x: number; y: number; radius: number; fill: string; ring?: string }
+
+export interface GridFrame {
+  markers: readonly GridMarker[];
+  /** Tint the square of `range` tiles around a cell, e.g. a build's reach. */
+  hover?: { x: number; y: number; range: number; color: string };
 }
 
-const TILE = { ".": "#fff3e4", "#": "#c9b3e6", E: "#a8e6cf", X: "#ffd38a" } as const;
-
-/** Draw a mansion from above (Boo & Co.'s palette): tiles, the hover range, builds and visitors. */
-export function drawMansionTop(ctx: Ctx2D, size: { w: number; h: number }, mansion: Mansion, frame: MansionFrame, view: View2D) {
+/** Draw a tile grid from above: background, tiles, the hover square, then markers in order. */
+export function drawGridTop(ctx: Ctx2D, size: { w: number; h: number }, grid: Grid2D, frame: GridFrame, view: View2D) {
   const s = view.scale;
   const at = (x: number, y: number) => [x * s + view.ox, y * s + view.oy] as const;
   ctx.globalAlpha = 1;
-  ctx.fillStyle = "#fbe9e1";
+  ctx.fillStyle = grid.background;
   ctx.fillRect(0, 0, size.w, size.h);
-  mansion.tiles.forEach((row, y) => [...row].forEach((t, x) => {
-    ctx.fillStyle = TILE[t as keyof typeof TILE];
+  grid.tiles.forEach((row, y) => [...row].forEach((t, x) => {
+    const color = grid.colors[t];
+    if (!color) return;
+    ctx.fillStyle = color;
     ctx.fillRect(...at(x, y), s + 0.5, s + 0.5); // overlap half a pixel so no seams show
   }));
   if (frame.hover) {
-    const { x, y, range } = frame.hover;
+    const { x, y, range, color } = frame.hover;
     ctx.globalAlpha = 0.18;
-    ctx.fillStyle = "#8f7ae6";
+    ctx.fillStyle = color;
     ctx.fillRect(...at(x - range, y - range), (2 * range + 1) * s, (2 * range + 1) * s);
     ctx.globalAlpha = 1;
   }
-  const dot = (x: number, y: number, r: number, color: string) => {
-    ctx.fillStyle = color;
+  for (const m of frame.markers) {
+    ctx.fillStyle = m.fill;
     ctx.beginPath();
-    ctx.arc(...at(x + 0.5, y + 0.5), r * s, 0, Math.PI * 2);
+    ctx.arc(...at(m.x + 0.5, m.y + 0.5), m.radius * s, 0, Math.PI * 2);
     ctx.fill();
-  };
-  for (const b of frame.builds) {
-    if (b.kind === "trap") { dot(b.x, b.y, 0.34, "#ef7b8c"); continue; }
-    dot(b.x, b.y, 0.32, "#ffffff");
-    ctx.strokeStyle = "#8f7ae6";
-    ctx.lineWidth = Math.max(1, s / 12);
-    ctx.stroke();
+    if (m.ring) {
+      ctx.strokeStyle = m.ring;
+      ctx.lineWidth = Math.max(1, s / 12);
+      ctx.stroke();
+    }
   }
-  for (const v of frame.visitors) dot(v.x, v.y, 0.22, v.fleeing ? "#ff9fb2" : v.fear > 0 ? "#b9a7f0" : "#7ec8e3");
 }

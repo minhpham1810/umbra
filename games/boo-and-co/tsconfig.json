@@ -8,18 +8,24 @@
       "DOM"
     ],
     "types": [
-      "vite/client"
+      "vite/client",
+      "node"
     ],
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "paths": {
       "@umbra/engine": [
         "../../packages/engine/src/index.ts"
+      ],
+      "@umbra/agents": [
+        "../../packages/agents/src/index.ts"
       ]
     }
   },
   "include": [
     "src",
-    "vite.config.ts"
+    "scripts",
+    "vite.config.ts",
+    "vitest.config.ts"
   ]
 }

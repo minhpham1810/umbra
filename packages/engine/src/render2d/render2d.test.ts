@@ -1,7 +1,6 @@
 import { expect, it } from "vitest";
 import { SceneSchema } from "../scene/schema.js";
-import { MansionSchema } from "../mansion/mansion.js";
-import { centerView, drawMansionTop, drawSceneSide, fitView, sideLayout, toWorld, type Ctx2D } from "./render2d.js";
+import { centerView, drawGridTop, drawSceneSide, fitView, sideLayout, toWorld, type Ctx2D } from "./render2d.js";
 
 /** Records fillRect calls; everything else is a no-op. */
 function fakeCtx() {
@@ -44,8 +43,8 @@ it("draws both views", () => {
   const side = fakeCtx();
   drawSceneSide(side.ctx, { w: 800, h: 600 }, sideLayout(scene), { player: { x: 1.5, y: 1.7, z: 0.5 }, platforms: [] }, centerView(800, 600, 0.5, -1.7, 40));
   expect(side.rects.length).toBe(1 + sideLayout(scene).cells.length + 2); // background, blocks, glow, player
-  const mansion = MansionSchema.parse({ tiles: ["#E#", "#.#", "#X#"], budget: 10, quota: 1, durationTicks: 60 });
+  const grid = { tiles: ["#E#", "#.#", "#X#"], colors: { "#": "#000", ".": "#fff" }, background: "#eee" };
   const top = fakeCtx();
-  drawMansionTop(top.ctx, { w: 300, h: 300 }, mansion, { visitors: [], builds: [], hover: { x: 1, y: 1, range: 1 } }, fitView(300, 300, 3, 3));
-  expect(top.rects.length).toBe(1 + 9 + 1); // background, tiles, hover
+  drawGridTop(top.ctx, { w: 300, h: 300 }, grid, { markers: [{ x: 1, y: 1, radius: 0.3, fill: "#f00" }], hover: { x: 1, y: 1, range: 1, color: "#00f" } }, fitView(300, 300, 3, 3));
+  expect(top.rects.length).toBe(1 + 7 + 1); // background, the 7 tiles with a colour, hover
 });

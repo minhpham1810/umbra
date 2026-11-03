@@ -5,8 +5,6 @@ import { resolve } from "node:path";
 import { SceneSchema } from "@umbra/engine";
 import { DEFAULT_GEMINI_MODEL, geminiGenerate, geminiPlannerWithFallback, loadEnv } from "./gemini.js";
 import { playtest } from "./playtester.js";
-import { MansionSchema } from "@umbra/engine";
-import { playtestMansion } from "./strategy.js";
 
 loadEnv();
 
@@ -14,12 +12,10 @@ const file = process.argv[2];
 if (!file) { console.error("usage: playtest <scene.json>"); process.exit(2); }
 // pnpm --filter runs from packages/agents; INIT_CWD is where the user ran the command.
 const raw: unknown = JSON.parse(await readFile(resolve(process.env["INIT_CWD"] ?? ".", file), "utf8"));
-// A Boo & Co. mansion (it has tiles) gets the balance playtest instead.
+// Boo & Co. mansions have their own balance playtest: `pnpm --filter @umbra/boo-and-co playtest`.
 if (typeof raw === "object" && raw !== null && "tiles" in raw) {
-  const { findings, strategy } = playtestMansion(MansionSchema.parse(raw));
-  console.log(JSON.stringify({ findings, best: { scares: strategy.best.scares, plan: strategy.best.plan },
-    bestByPool: Object.fromEntries(Object.entries(strategy.bestByPool).map(([k, v]) => [k, v.scares])), runs: strategy.runs }, null, 2));
-  process.exit(findings.length ? 1 : 0);
+  console.error("this is a Boo & Co. mansion; run `pnpm --filter @umbra/boo-and-co playtest <mansion.json>`");
+  process.exit(2);
 }
 const scene = SceneSchema.parse(raw);
 const key = process.env["GEMINI_API_KEY"];

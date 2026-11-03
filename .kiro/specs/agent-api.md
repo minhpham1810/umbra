@@ -14,7 +14,7 @@ A typed Node API (also served as an MCP server) that lets agents — and Kiro �
 | `nav.bake` | `(scene) → {navmeshId, islands[]}` | ✅ implemented |
 | `nav.path` | `(navmeshId, from, to) → {found, waypoints[]}` | ✅ implemented |
 | `search.reach` | `(scene, goal, budget) → {reached, inputs[], attempts}` | ✅ implemented (budget = max sim runs; edge jumps cross multiple gaps) |
-| `search.strategy` | `(mansion, budget) → {quotaReachable, bestPlan, bestByPool, dominantStrategies, deadlocks}` | ✅ implemented |
+| `search.strategy` | `(level, budget) → {quotaReachable, bestPlan, bestByPool, dominantStrategies, deadlocks}` | ✅ implemented for any `PlanGame` a game registers (`createServer({ strategy })`); Boo & Co. serves it for mansions |
 | `replay.save` | `(scene, seed, inputs[]) → replayId` | ✅ implemented |
 
 ## Requirements

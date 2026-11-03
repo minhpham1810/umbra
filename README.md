@@ -53,7 +53,7 @@ flee back to the entrance, and in a one-wide hallway they can jam against new
 arrivals; the HUD counts stuck visitors. `?view=2d` draws the mansion with the
 engine's flat top-down Canvas 2D view instead of Three.js; clicks build the same way.
 
-The simulation (`packages/engine/src/mansion`) is integer-only on a grid with one
+The simulation (`games/boo-and-co/src/sim`) is integer-only on a grid with one
 visitor per cell, instead of the navmesh crowds in the design, so it is
 deterministic in every browser. The mansion is `games/boo-and-co/src/mansion.json`.
 Its quota (140) needs both build kinds: the strategy search's best ghost-only and
@@ -62,17 +62,20 @@ trap-only plans reach about 113 scares, mixed plans about 160.
 ### Balance playtest
 
 ```sh
-pnpm --silent --filter @umbra/agents playtest games/boo-and-co/src/mansion.json
+pnpm --silent --filter @umbra/boo-and-co playtest [mansion.json]
 ```
 
-For a mansion file, the Playtester runs `searchStrategy` (also the `search.strategy`
-MCP tool): about 600 simulated days across ghost-only, trap-only and mixed plans,
+The agents' balance search (`searchStrategy` in `packages/agents/src/strategy.ts`) works
+on any build-placement game through a small `PlanGame` adapter: build kinds and costs,
+the cells builds may go on, the budget and quota, and a deterministic `run(plan)`. Boo &
+Co.'s adapter is `games/boo-and-co/src/sim/balance.ts`. For a mansion (the shipped one by
+default) it runs about 600 simulated days across ghost-only, trap-only and mixed plans,
 random restarts then hill climbing, with a fixed seed. It reports:
 
 | Bug type | Meaning |
 | --- | --- |
 | `unwinnable_quota` | No plan found reaches the quota |
-| `dominant_strategy` | A single-kind plan beats every plan using the other kind by over 10% |
+| `dominant_strategy` | A single-kind plan beats every plan using another kind by over 10% |
 | `crowd_deadlock` | A plan leaves visitors stuck at the end of the day |
 
 Each finding carries the build plan that shows it; the mansion plus the plan replay
@@ -152,12 +155,15 @@ proposals, not proof a player can complete a jump.
 ## MCP tools server
 
 ```sh
-pnpm --silent --filter @umbra/agents mcp
+pnpm --silent --filter @umbra/agents mcp       # engine tools
+pnpm --silent --filter @umbra/boo-and-co mcp   # the same, plus search.strategy for mansions
 ```
 
 Serves the agent tools over stdio: `scene.validate`, `scene.write`, `nav.bake`,
-`nav.path`, `sim.run`, `sim.observe`, `search.reach`, `replay.save`. Kiro picks it
-up from `.kiro/settings/mcp.json`. Any MCP client can launch the same command.
+`nav.path`, `sim.run`, `sim.observe`, `search.reach`, `replay.save`. A game adds
+`search.strategy` by passing its `PlanGame` adapter: `createServer({ strategy })`.
+Kiro picks up the Boo & Co. server (all nine tools) from `.kiro/settings/mcp.json`.
+Any MCP client can launch the same command.
 Inputs are Zod-validated and capped at 18,000 ticks per run and 2,000 sim runs per
 search. `scene.write` only writes `.json` files inside `UMBRA_SCENES_DIR`
 (default: the working directory); replays go to `UMBRA_REPLAYS_DIR` (default

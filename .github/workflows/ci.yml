@@ -54,7 +54,7 @@ jobs:
       - name: Install Chromium
         run: pnpm --filter @umbra/engine exec playwright install --with-deps chromium
       - name: Browser-vs-Node hash check
-        run: pnpm --filter @umbra/engine browser-hash-check
+        run: pnpm --filter @umbra/engine browser-hash-check --with games/boo-and-co/src/sim/hash-cases.ts
 
   # ── scene schema validation ────────────────────────────────────────────────
   validate-scenes:
