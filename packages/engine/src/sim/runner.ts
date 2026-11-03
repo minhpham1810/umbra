@@ -60,7 +60,8 @@ export async function createSimulation(scene: Scene) {
 
   const playerBody = physWorld.getRigidBody(handles.playerBody)!;
   const charCtrl = physWorld.createCharacterController(0.01);
-  charCtrl.setApplyImpulsesToDynamicBodies(false);
+  // Walking into a crate pushes it; scenes without crates have no dynamic bodies, so this is a no-op there.
+  charCtrl.setApplyImpulsesToDynamicBodies(true);
   charCtrl.enableSnapToGround(0.1);
 
   const eventQueue = new RAPIER.EventQueue(true);
@@ -188,6 +189,8 @@ export async function createSimulation(scene: Scene) {
     get events(): readonly SimEvent[] { return events; },
     /** Platform body centres, in scene construction order. */
     platforms: () => handles.platforms.map((p) => platformPosition(p, tick)),
+    /** Crate body centres, in scene construction order. */
+    crates: () => handles.crates.map((h) => ({ ...physWorld.getRigidBody(h)!.translation() })),
     get outcome() { return outcome; },
     result: (): RunResult => ({ outcome, finalStateHash: tickHashes.at(-1) ?? 0,
       events: [...events], tickHashes: [...tickHashes] }),

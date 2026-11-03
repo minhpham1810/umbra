@@ -5,6 +5,9 @@
  * (when it exists), run the simulation twice with the same seed and idle
  * inputs, then assert the tickHashes arrays are identical.
  *
+ * Then replay every saved replay (Studio samples, benchmark solutions) twice and assert
+ * both runs end on the hash stored in the file.
+ *
  * Run:  pnpm tsx scripts/determinism-check.ts
  * CI:   pnpm --filter @umbra/engine determinism-check
  */
@@ -14,6 +17,7 @@ import { initRapier } from "../src/physics/world.js";
 import { runSim } from "../src/sim/runner.js";
 import { validateScene } from "../src/scene/schema.js";
 import { IDLE_FRAME } from "../src/input/types.js";
+import type { Replay } from "../src/replay/types.js";
 
 const REPO_ROOT = resolve(import.meta.dirname, "../../..");
 const DIRS = [
@@ -47,6 +51,31 @@ for (const dir of DIRS) {
     } else {
       console.log(`OK       ${file}  hash=${a.finalStateHash}`);
       passed++;
+    }
+  }
+}
+
+// ── saved replays ───────────────────────────────────────────────────────────
+const REPLAY_DIRS = ["apps/studio/public/replays", "apps/studio/public/fixes", "benchmark/levels/solutions"]
+  .map((d) => join(REPO_ROOT, d)).filter(existsSync);
+for (const dir of REPLAY_DIRS) {
+  for (const file of readdirSync(dir).filter((f) => f.endsWith(".json") && f !== "index.json")) {
+    const raw = JSON.parse(readFileSync(join(dir, file), "utf8"));
+    // A Fixer evidence file holds a before and an after replay.
+    const replays: [string, Replay][] = raw.kind === "umbra-fix" ? [[`${file} before`, raw.before], [`${file} after`, raw.after]] : [[file, raw]];
+    for (const [name, replay] of replays) {
+      const v = validateScene(replay.scene);
+      if (!v.ok) { console.error(`INVALID  ${name}: ${v.errors.join(", ")}`); failed++; continue; }
+      const opts = { scene: v.scene, seed: replay.seed, inputs: replay.inputs, maxTicks: replay.inputs.length };
+      const a = await runSim(opts);
+      const b = await runSim(opts);
+      if (a.finalStateHash !== b.finalStateHash || a.finalStateHash !== replay.finalStateHash) {
+        console.error(`DIVERGED ${name}: saved=${replay.finalStateHash} run1=${a.finalStateHash} run2=${b.finalStateHash}`);
+        failed++;
+      } else {
+        console.log(`OK       ${name}  hash=${a.finalStateHash}`);
+        passed++;
+      }
     }
   }
 }

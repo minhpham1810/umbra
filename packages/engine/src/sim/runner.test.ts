@@ -63,7 +63,7 @@ describe("determinism", () => {
           return a.finalStateHash === b.finalStateHash;
         },
       ),
-      { numRuns: 30 },
+      { numRuns: 100 },
     );
   });
 });
@@ -187,4 +187,22 @@ it("rejects invalid moving platform props", async () => {
     props: { axis: "w", distance: 0 } }] });
   expect(result.ok).toBe(false);
   if (!result.ok) expect(result.errors.join()).toMatch(/props\.axis.*props\.distance|props\.distance.*props\.axis/);
+});
+
+it("walking into a crate pushes it along the floor, deterministically", async () => {
+  const pieces = Array.from({ length: 12 }, (_, z) => ({ kind: "floor" as const, pos: { x: 0, y: 0, z }, rot: 0 }));
+  const scene: Scene = { version: 1, rapierVersion: "0.12.0", pieces: [...pieces, { kind: "crate", pos: { x: 0, y: 1, z: 3 }, rot: 0 }],
+    spawn: { pos: { x: 0.5, y: 1.72, z: 0.5 }, yaw: 0 }, goals: [{ id: "exit", kind: "exit", pos: { x: 0, y: 1, z: 11 } }] };
+  const sim = await createSimulation(scene);
+  try {
+    for (let t = 0; t < 60; t++) sim.step({ buttons: BUTTON.FORWARD, yaw: 0 });
+    const [crate] = sim.crates();
+    expect(crate!.z).toBeGreaterThan(5.5); // started at 3.5
+    expect(crate!.y).toBeCloseTo(1.45, 1); // still resting on the floor
+    expect(crate!.z - sim.position().z).toBeCloseTo(0.75, 1); // just ahead of the player
+  } finally { sim.dispose(); }
+  const inputs = Array.from({ length: 90 }, () => ({ buttons: BUTTON.FORWARD, yaw: 0 }));
+  const a = await runSim({ scene, seed: 0, inputs, maxTicks: 90 });
+  const b = await runSim({ scene, seed: 0, inputs, maxTicks: 90 });
+  expect(a.tickHashes).toEqual(b.tickHashes);
 });

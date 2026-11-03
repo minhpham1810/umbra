@@ -183,7 +183,7 @@ export async function searchTarget(scene: Scene, approach: Point, target: Point,
   // Walking surface height per column (top of its highest solid block).
   const ground = new Map<string, number>();
   for (const p of scene.pieces) {
-    if (p.kind === "pit" || p.kind === "moving_platform") continue;
+    if (p.kind === "pit" || p.kind === "moving_platform" || p.kind === "crate") continue;
     const k = `${p.pos.x},${p.pos.z}`;
     ground.set(k, Math.max(ground.get(k) ?? -Infinity, p.pos.y + 1));
   }

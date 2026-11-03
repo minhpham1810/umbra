@@ -3,7 +3,7 @@
  * a top-down view of a mansion. Drawing only; the sims are untouched, so replays and
  * state hashes are the same whether a game draws in 2D or 3D.
  */
-import { PLATFORM_HALF_Y } from "../physics/world.js";
+import { CRATE_HALF, PLATFORM_HALF_Y } from "../physics/world.js";
 import type { Scene } from "../scene/schema.js";
 import type { Build, Mansion } from "../mansion/mansion.js";
 
@@ -59,7 +59,7 @@ export function sideLayout(scene: Scene): SideLayout {
   const cells = new Map<string, SideLayout["cells"][number]>();
   for (const p of scene.pieces) {
     // Side walls lie outside the floor's depth and would hide everything; holes show as partial fill.
-    if (p.kind === "pit" || p.kind === "moving_platform" || p.pos[d] < d0 || p.pos[d] > d1) continue;
+    if (p.kind === "pit" || p.kind === "moving_platform" || p.kind === "crate" || p.pos[d] < d0 || p.pos[d] > d1) continue;
     const key = `${p.pos[axis]},${p.pos.y}`;
     const c = cells.get(key) ?? { u: p.pos[axis], y: p.pos.y, fill: 0, wall: false };
     c.fill += 1 / (d1 - d0 + 1);
@@ -73,6 +73,8 @@ export function sideLayout(scene: Scene): SideLayout {
 export interface SideFrame {
   player: { x: number; y: number; z: number };
   platforms: readonly { x: number; y: number; z: number }[];
+  /** Crate centres; ones off the player's lane are drawn faint, since depth is flattened. */
+  crates?: readonly { x: number; y: number; z: number }[];
 }
 
 /** Draw a side view (Lantern's palette): blocks, platforms, goals, and the player with a lantern glow. */
@@ -90,6 +92,13 @@ export function drawSceneSide(ctx: Ctx2D, size: { w: number; h: number }, layout
   ctx.globalAlpha = 1;
   ctx.fillStyle = "#6a6a7c";
   for (const p of frame.platforms) ctx.fillRect(...rect(p[layout.axis] - 0.5, p.y + PLATFORM_HALF_Y, 1, 2 * PLATFORM_HALF_Y));
+  const depth = layout.axis === "z" ? "x" : "z";
+  ctx.fillStyle = "#8a6a44";
+  for (const c of frame.crates ?? []) {
+    ctx.globalAlpha = Math.abs(c[depth] - frame.player[depth]) < CRATE_HALF + 0.3 ? 1 : 0.3;
+    ctx.fillRect(...rect(c[layout.axis] - CRATE_HALF, c.y + CRATE_HALF, 2 * CRATE_HALF, 2 * CRATE_HALF));
+  }
+  ctx.globalAlpha = 1;
   ctx.strokeStyle = "#72e5be";
   ctx.lineWidth = Math.max(1, s / 16);
   for (const g of layout.goals) ctx.strokeRect(...rect(g.u, g.y + 1, 1, 1));

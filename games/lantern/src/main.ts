@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { BUTTON, FIXED_DT, SceneSchema, centerView, createSimulation, drawSceneSide, sideLayout, type Scene, type SideLayout } from "@umbra/engine";
+import { BUTTON, CRATE_HALF, FIXED_DT, SceneSchema, centerView, createSimulation, drawSceneSide, sideLayout, type Scene, type SideLayout } from "@umbra/engine";
 import level1 from "./level.json";
 import level2 from "./level-2.json";
 
@@ -33,14 +33,16 @@ async function loadLevel() {
   return parsed.data;
 }
 
+type V3 = { x: number; y: number; z: number };
+
 /** What the game loop needs from a view: draw a frame, follow the window size, clean up. */
 interface View {
-  render(player: THREE.Vector3, platforms: THREE.Vector3[], yaw: number): void;
+  render(player: THREE.Vector3, platforms: THREE.Vector3[], crates: THREE.Vector3[], yaw: number): void;
   resize(): void;
   dispose(): void;
 }
 
-function threeView(level: Scene, platformCount: number): View {
+function threeView(level: Scene, platformCount: number, crateCount: number): View {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
   renderer.shadowMap.enabled = true;
@@ -55,7 +57,7 @@ function threeView(level: Scene, platformCount: number): View {
   const floor = new THREE.MeshStandardMaterial({ color: 0x555564, roughness: 0.95 });
   const wall = new THREE.MeshStandardMaterial({ color: 0x343744, roughness: 0.95 });
   for (const piece of level.pieces) {
-    if (piece.kind === "pit" || piece.kind === "moving_platform") continue;
+    if (piece.kind === "pit" || piece.kind === "moving_platform" || piece.kind === "crate") continue;
     const mesh = new THREE.Mesh(box, piece.kind === "wall" ? wall : floor);
     mesh.position.set(piece.pos.x + 0.5, piece.pos.y + 0.5, piece.pos.z + 0.5);
     mesh.receiveShadow = true;
@@ -66,6 +68,15 @@ function threeView(level: Scene, platformCount: number): View {
   const platformMeshes = Array.from({ length: platformCount }, () => {
     const mesh = new THREE.Mesh(box, floor);
     mesh.scale.y = 0.25;
+    mesh.receiveShadow = true;
+    mesh.castShadow = true;
+    scene.add(mesh);
+    return mesh;
+  });
+  const crateMaterial = new THREE.MeshStandardMaterial({ color: 0x8a6a44, roughness: 0.9 });
+  const crateMeshes = Array.from({ length: crateCount }, () => {
+    const mesh = new THREE.Mesh(box, crateMaterial);
+    mesh.scale.setScalar(2 * CRATE_HALF);
     mesh.receiveShadow = true;
     mesh.castShadow = true;
     scene.add(mesh);
@@ -92,9 +103,10 @@ function threeView(level: Scene, platformCount: number): View {
   }
   const lookAt = new THREE.Vector3();
   return {
-    render(position, platforms, yaw) {
+    render(position, platforms, crates, yaw) {
       player.position.copy(position);
       platformMeshes.forEach((mesh, i) => mesh.position.copy(platforms[i]!));
+      crateMeshes.forEach((mesh, i) => mesh.position.copy(crates[i]!));
       const radians = yaw / 256 * Math.PI * 2;
       camera.position.set(position.x - Math.sin(radians) * 4, position.y + 2.6, position.z - Math.cos(radians) * 4);
       lookAt.copy(position); lookAt.y += 0.5;
@@ -109,7 +121,7 @@ function threeView(level: Scene, platformCount: number): View {
     },
     dispose() {
       renderer.dispose(); box.dispose(); playerGeometry.dispose();
-      floor.dispose(); wall.dispose(); playerMaterial.dispose(); goalMaterial.dispose();
+      floor.dispose(); wall.dispose(); crateMaterial.dispose(); playerMaterial.dispose(); goalMaterial.dispose();
     },
   };
 }
@@ -119,10 +131,10 @@ function canvasView(layout: SideLayout): View {
   const ctx = canvas.getContext("2d")!;
   const size = { w: 0, h: 0 };
   return {
-    render(player, platforms) {
+    render(player, platforms, crates) {
       const scale = size.h / 12;
       ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
-      drawSceneSide(ctx, size, layout, { player, platforms }, centerView(size.w, size.h, player[layout.axis], -player.y - 1, scale));
+      drawSceneSide(ctx, size, layout, { player, platforms, crates }, centerView(size.w, size.h, player[layout.axis], -player.y - 1, scale));
     },
     resize() {
       size.w = innerWidth; size.h = innerHeight;
@@ -136,9 +148,11 @@ async function start() {
   const level = await loadLevel();
   let sim = await createSimulation(level);
   const side = flat ? sideLayout(level) : undefined;
-  const view = side ? canvasView(side) : threeView(level, sim.platforms().length);
+  const view = side ? canvasView(side) : threeView(level, sim.platforms().length, sim.crates().length);
   let platformsBefore = sim.platforms();
   let platformsNow = platformsBefore;
+  let cratesBefore = sim.crates();
+  let cratesNow = cratesBefore;
   const keys = new Set<string>();
   const abort = new AbortController();
   const options = { signal: abort.signal };
@@ -151,6 +165,7 @@ async function start() {
   const previous = current.clone();
   const shownPlayer = new THREE.Vector3();
   const shownPlatforms = platformsNow.map(() => new THREE.Vector3());
+  const shownCrates = cratesNow.map(() => new THREE.Vector3());
   const playingText = custom ? `Generated level "${custom}". Reach the green exit.`
     : levelIndex === 0 ? "Reach the green exit. Jump across the broken floor."
     : "Reach the green exit. Ride the moving platform across the chasm.";
@@ -195,6 +210,7 @@ async function start() {
       yaw = level.spawn.yaw;
       current.copy(sim.position()); previous.copy(current);
       platformsBefore = platformsNow = sim.platforms();
+      cratesBefore = cratesNow = sim.crates();
       accumulator = 0; lastTime = performance.now();
       status.textContent = playingText;
     } catch (error) { status.textContent = `Restart failed: ${String(error)}`; }
@@ -224,24 +240,28 @@ async function start() {
         }
         previous.copy(current);
         platformsBefore = platformsNow;
+        cratesBefore = cratesNow;
         sim.step({ buttons, yaw: Math.round(yaw) % 256 });
         current.copy(sim.position());
         platformsNow = sim.platforms();
+        cratesNow = sim.crates();
         accumulator -= FIXED_DT;
       }
     }
     const alpha = sim.outcome === "timeout" ? accumulator / FIXED_DT : 1;
     shownPlayer.lerpVectors(previous, current, alpha);
-    shownPlatforms.forEach((p, i) => {
-      const a = platformsBefore[i]!, b = platformsNow[i]!;
+    const lerp = (out: THREE.Vector3[], before: V3[], now: V3[]) => out.forEach((p, i) => {
+      const a = before[i]!, b = now[i]!;
       p.set(a.x + (b.x - a.x) * alpha, a.y + (b.y - a.y) * alpha, a.z + (b.z - a.z) * alpha);
     });
+    lerp(shownPlatforms, platformsBefore, platformsNow);
+    lerp(shownCrates, cratesBefore, cratesNow);
     if (sim.outcome !== "timeout") {
       const message = sim.outcome !== "win" ? "You fell into the dark. Try again."
         : hasNext ? "You found the exit. Press N for the next level." : "You found the last exit. Play again?";
       if (status.textContent !== message) status.textContent = message;
     }
-    view.render(shownPlayer, shownPlatforms, yaw);
+    view.render(shownPlayer, shownPlatforms, shownCrates, yaw);
   });
 
   const cleanup = () => {

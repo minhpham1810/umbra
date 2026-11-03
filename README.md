@@ -275,6 +275,9 @@ axis (`props: { axis, distance, speed }`, validated by the scene schema) on a
 tick-based path and carry the player standing on them. The carry is not
 collision-checked, so keep walls off platform paths. Navmesh bakes exclude
 platforms, and `searchReach` does not wait for them.
+Crates (`crate`) are dynamic 0.9 m boxes with locked rotation: walking into one pushes
+it, and the player can stand on it. Navmesh bakes and `searchReach` ignore crates.
+Lantern level 1 has one beside the spawn.
 All goal kinds currently behave as collectable sensors, and reaching every goal
 wins. Keys, doors, and hazards do not yet have separate rules. The seed argument
 is retained for replays but the simulation currently has no random systems.

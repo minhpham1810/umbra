@@ -4,7 +4,7 @@
  */
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { SceneSchema, createSimulation, type InputFrame, type Scene, type SimEvent } from "@umbra/engine";
+import { CRATE_HALF, SceneSchema, createSimulation, type InputFrame, type Scene, type SimEvent } from "@umbra/engine";
 
 const $ = <T extends HTMLElement>(sel: string) => document.querySelector<T>(sel)!;
 const canvas = $<HTMLCanvasElement>("canvas");
@@ -21,7 +21,7 @@ type V3 = { x: number; y: number; z: number };
 interface Loaded {
   title: string; note: string; scene: Scene;
   /** Player and platform positions at each tick; index 0 is before the first step. */
-  player: V3[]; platforms: V3[][];
+  player: V3[]; platforms: V3[][]; crates: V3[][];
   events: SimEvent[]; outcome: string; verified: boolean; reason: string;
 }
 
@@ -61,11 +61,13 @@ async function simulate(title: string, raw: unknown): Promise<Loaded> {
   try {
     const player = [sim.position()];
     const platforms = [sim.platforms()];
+    const crates = [sim.crates()];
     for (const frame of inputs) {
       if (sim.outcome !== "timeout") break;
       sim.step(frame);
       player.push(sim.position());
       platforms.push(sim.platforms());
+      crates.push(sim.crates());
     }
     const result = sim.result();
     const verified = hash !== undefined && result.finalStateHash === hash;
@@ -73,7 +75,7 @@ async function simulate(title: string, raw: unknown): Promise<Loaded> {
       : verified ? `Reproduced exactly · hash ${hash}`
       : rapier && rapier !== scene.rapierVersion ? `Hash differs (recorded with Rapier ${rapier})`
       : `Hash differs: saved ${hash}, got ${result.finalStateHash}`;
-    return { title, note, scene, player, platforms, events: result.events, outcome: result.outcome, verified, reason };
+    return { title, note, scene, player, platforms, crates, events: result.events, outcome: result.outcome, verified, reason };
   } finally { sim.dispose(); }
 }
 
@@ -94,6 +96,7 @@ const mats = {
   floor: new THREE.MeshStandardMaterial({ color: 0x6b6f80, roughness: 0.9 }),
   wall: new THREE.MeshStandardMaterial({ color: 0x3e4252, roughness: 0.9, transparent: true, opacity: 0.55 }),
   platform: new THREE.MeshStandardMaterial({ color: 0x8a7bd8, roughness: 0.6 }),
+  crate: new THREE.MeshStandardMaterial({ color: 0x8a6a44, roughness: 0.9 }),
   pit: new THREE.MeshBasicMaterial({ color: 0xff7a7a, transparent: true, opacity: 0.18, side: THREE.DoubleSide }),
   goal: new THREE.MeshStandardMaterial({ color: 0x6fdcb0, emissive: 0x2a9d74, wireframe: true }),
   player: new THREE.MeshStandardMaterial({ color: 0xffc36c, emissive: 0x6b4a14 }),
@@ -102,6 +105,7 @@ const mats = {
 const playerMesh = new THREE.Mesh(new THREE.CapsuleGeometry(0.3, 0.8, 4, 12), mats.player);
 let level = new THREE.Group();
 let platformMeshes: THREE.Mesh[] = [];
+let crateMeshes: THREE.Mesh[] = [];
 view.add(playerMesh);
 
 function buildLevel(loaded: Loaded, edits: EditMark[]) {
@@ -109,7 +113,7 @@ function buildLevel(loaded: Loaded, edits: EditMark[]) {
   level.traverse((o) => { if (o instanceof THREE.Line || o instanceof THREE.Mesh && o.geometry !== box) o.geometry.dispose(); });
   level = new THREE.Group();
   for (const p of loaded.scene.pieces) {
-    if (p.kind === "moving_platform") continue;
+    if (p.kind === "moving_platform" || p.kind === "crate") continue;
     if (p.kind === "pit") {
       const plane = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mats.pit);
       plane.rotation.x = -Math.PI / 2;
@@ -124,6 +128,12 @@ function buildLevel(loaded: Loaded, edits: EditMark[]) {
   platformMeshes = loaded.platforms[0]!.map(() => {
     const m = new THREE.Mesh(box, mats.platform);
     m.scale.y = 0.25;
+    level.add(m);
+    return m;
+  });
+  crateMeshes = loaded.crates[0]!.map(() => {
+    const m = new THREE.Mesh(box, mats.crate);
+    m.scale.setScalar(2 * CRATE_HALF);
     level.add(m);
     return m;
   });
@@ -172,6 +182,7 @@ function show(t: number) {
   const p = current.player[tick]!;
   playerMesh.position.set(p.x, p.y, p.z);
   current.platforms[tick]!.forEach((q, i) => platformMeshes[i]?.position.set(q.x, q.y, q.z));
+  current.crates[tick]!.forEach((q, i) => crateMeshes[i]?.position.set(q.x, q.y, q.z));
   ui.scrub.value = String(tick);
   ui.tick.textContent = `${tick} / ${current.player.length - 1}`;
   if (ui.follow.checked) controls.target.lerp(new THREE.Vector3(p.x, p.y, p.z), 0.2);
