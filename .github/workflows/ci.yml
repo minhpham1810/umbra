@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+jobs:
+  # ── typecheck ──────────────────────────────────────────────────────────────
+  typecheck:
+    name: Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: "12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @umbra/engine exec tsc --noEmit
+      - run: pnpm --filter @umbra/agents exec tsc --noEmit
+
+  # ── engine tests (includes determinism property tests) ────────────────────
+  test-engine:
+    name: Engine tests + determinism
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: "12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+      - name: Run Vitest (schema + determinism property)
+        run: pnpm --filter @umbra/engine test
+      - name: Double-run determinism check on benchmark scenes
+        run: pnpm --filter @umbra/engine determinism-check
+
+  # ── scene schema validation ────────────────────────────────────────────────
+  validate-scenes:
+    name: Validate benchmark scenes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: "12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+      - name: Validate all scene JSON files
+        run: pnpm --filter @umbra/engine validate-scenes

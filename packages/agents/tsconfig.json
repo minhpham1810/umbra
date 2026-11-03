@@ -1,4 +1,13 @@
 {
   "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "moduleResolution": "Bundler",
+    "module": "ESNext",
+    "lib": ["ES2022"],
+    "skipLibCheck": true,
+    "paths": {
+      "@umbra/engine": ["../engine/src/index.ts"]
+    }
+  },
   "include": ["src"]
 }
