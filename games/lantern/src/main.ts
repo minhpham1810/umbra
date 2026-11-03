@@ -7,12 +7,27 @@ const canvas = document.querySelector<HTMLCanvasElement>("canvas")!;
 const status = document.querySelector<HTMLElement>("#status")!;
 const restart = document.querySelector<HTMLButtonElement>("#restart")!;
 const levels = [level1, level2];
-const requested = Number(new URLSearchParams(location.search).get("level"));
-const levelIndex = Number.isInteger(requested) && requested >= 1 && requested <= levels.length ? requested - 1 : 0;
-const level = SceneSchema.parse(levels[levelIndex]);
-const hasNext = levelIndex + 1 < levels.length;
+const params = new URLSearchParams(location.search);
+// ?scene=<name> plays public/levels/<name>.json, e.g. a level written by `haunt`.
+const custom = params.get("scene");
+const requested = Number(params.get("level"));
+const levelIndex = custom ? -1 : Number.isInteger(requested) && requested >= 1 && requested <= levels.length ? requested - 1 : 0;
+const hasNext = levelIndex >= 0 && levelIndex + 1 < levels.length;
+
+async function loadLevel() {
+  if (!custom) return SceneSchema.parse(levels[levelIndex]);
+  if (!/^[\w-]+$/.test(custom)) throw new Error(`bad scene name "${custom}" (letters, digits, - and _ only)`);
+  const res = await fetch(`${import.meta.env.BASE_URL}levels/${custom}.json`);
+  // Vite answers a missing file with index.html, so check the type as well as the status.
+  if (!res.ok || !res.headers.get("content-type")?.includes("json")) throw new Error(`no level at public/levels/${custom}.json`);
+  const parsed = SceneSchema.safeParse(await res.json());
+  const issue = parsed.error?.issues[0];
+  if (!parsed.success) throw new Error(`levels/${custom}.json is not a valid scene: ${issue?.path.join(".")} ${issue?.message}`);
+  return parsed.data;
+}
 
 async function start() {
+  const level = await loadLevel();
   let sim = await createSimulation(level);
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -77,7 +92,8 @@ async function start() {
   const previous = current.clone();
   const lookAt = new THREE.Vector3();
   const cameraTarget = new THREE.Vector3();
-  const playingText = levelIndex === 0 ? "Reach the green exit. Jump across the broken floor."
+  const playingText = custom ? `Generated level "${custom}". Reach the green exit.`
+    : levelIndex === 0 ? "Reach the green exit. Jump across the broken floor."
     : "Reach the green exit. Ride the moving platform across the chasm.";
   status.textContent = playingText;
 

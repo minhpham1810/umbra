@@ -27,7 +27,7 @@ so development does not need a package build first.
 | N (after a win) | Next level |
 
 Level 1: jump the broken floor. Level 2: ride the moving platform across the chasm.
-Open a level directly with `?level=2`. Falling ends the run.
+Open a level directly with `?level=2`, or a generated one with `?scene=<name>` (see below). Falling ends the run.
 Keyboard controls work without mouse capture. A desktop browser with WebGL
 and a keyboard is required; touch controls are not implemented.
 
@@ -184,8 +184,12 @@ trivial-skip checks are not implemented yet.
 ## Builder, Fixer and the agent loop
 
 ```sh
-pnpm --silent --filter @umbra/agents haunt "A crypt corridor: jump a gap, then climb a ledge." level.json
+pnpm --silent --filter @umbra/agents haunt "A crypt corridor: jump a gap, then climb a ledge." crypt
+pnpm --filter @umbra/lantern dev   # then open http://127.0.0.1:5173/?scene=crypt
 ```
+
+A bare name like `crypt` writes `games/lantern/public/levels/crypt.json`, which
+Lantern plays at `?scene=crypt`. A path ending in `.json` writes there instead.
 
 Needs `GEMINI_API_KEY`. The Builder asks Gemini for a small blueprint (floor
 rectangles with heights, pits, moving platforms, spawn, exit), compiles it to kit
