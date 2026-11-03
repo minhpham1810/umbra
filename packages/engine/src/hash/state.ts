@@ -6,7 +6,7 @@ import type { World } from "../ecs/types.js";
  * IMPORTANT: this must produce the same number in Node and in the browser
  * for the same world state — that is the core determinism guarantee.
  */
-export function hashWorld(world: World, rapierSnapshotHash: number): number {
+export function hashWorld(world: World, rapierSnapshotHash: number, extra: readonly number[] = []): number {
   let h = 2166136261; // FNV-1a 32-bit offset basis
 
   // Sort entity IDs so insertion order never matters.
@@ -28,6 +28,9 @@ export function hashWorld(world: World, rapierSnapshotHash: number): number {
 
   // Mix in the physics snapshot hash.
   h = fnv32(h, rapierSnapshotHash);
+  // Sim state kept outside the ECS and Rapier (integers; see the caller).
+  h = fnv32(h, extra.length);
+  for (const v of extra) h = fnv32(h, v);
   // Mix in the tick so equal states at different ticks differ.
   h = fnv32(h, world.tick);
 

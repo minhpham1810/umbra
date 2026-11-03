@@ -54,6 +54,10 @@ export async function createSimulation(scene: Scene) {
   let lastMove = { x: 0, y: 0, z: 0 };
   let riding = -1; // index of the platform the player stood on after the last tick
 
+  // Everything that changes future ticks must be in the hash, not just the ECS and Rapier.
+  const stateHash = () => hashWorld(ecsWorld, snapshotHash(physWorld), [
+    Math.round(verticalVelocity * 1000), riding, grounded ? 1 : 0, ...[...goalsReached].sort((a, b) => a - b)]);
+
   const playerBody = physWorld.getRigidBody(handles.playerBody)!;
   const charCtrl = physWorld.createCharacterController(0.01);
   charCtrl.setApplyImpulsesToDynamicBodies(false);
@@ -156,7 +160,7 @@ export async function createSimulation(scene: Scene) {
     if (finalPos.y < OUT_OF_BOUNDS_Y) {
       events.push({ tick, kind: "out_of_bounds", pos: { x: finalPos.x, y: finalPos.y, z: finalPos.z } });
       outcome = "out_of_bounds";
-      tickHashes.push(hashWorld(ecsWorld, snapshotHash(physWorld)));
+      tickHashes.push(stateHash());
       tick++;
       return;
     }
@@ -164,13 +168,13 @@ export async function createSimulation(scene: Scene) {
     // ── 6. win check ──────────────────────────────────────────────────────────
     if (goalsReached.size === totalGoals && totalGoals > 0) {
       outcome = "win";
-      tickHashes.push(hashWorld(ecsWorld, snapshotHash(physWorld)));
+      tickHashes.push(stateHash());
       tick++;
       return;
     }
 
     // ── 7. hash ───────────────────────────────────────────────────────────────
-    tickHashes.push(hashWorld(ecsWorld, snapshotHash(physWorld)));
+    tickHashes.push(stateHash());
     tick++;
   }
 

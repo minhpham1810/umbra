@@ -4,8 +4,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, it } from "vitest";
 import { SceneSchema, runSim, type Scene } from "@umbra/engine";
-import { holeCandidates, playtest } from "./playtester.js";
-import { geminiPlanner } from "./gemini.js";
+import { defaultPlanner, holeCandidates, playtest } from "./playtester.js";
+import { geminiPlanner, geminiPlannerWithFallback } from "./gemini.js";
 
 const load = (f: string) => SceneSchema.parse(JSON.parse(readFileSync(
   new URL(`../../../games/lantern/src/${f}`, import.meta.url), "utf8")));
@@ -47,8 +47,15 @@ it("uses a validated Gemini plan and rejects bad ones", async () => {
   const prompts: string[] = [];
   const planner = geminiPlanner(async (p) => (prompts.push(p), '{"goals":[{"kind":"reach","goalId":"exit"}]}'));
   const report = await playtest(level1, { planner });
-  expect(report.plan).toEqual([{ kind: "reach", goalId: "exit" }]);
+  // The model left out the fall check; it still runs, after the model's picks.
+  expect(report.plan).toEqual([{ kind: "reach", goalId: "exit" }, { kind: "fall_check" }]);
   expect(prompts[0]).toContain('"id":"exit"');
+  const reordered = await geminiPlanner(async () => '{"goals":[{"kind":"fall_check"},{"kind":"fall_check"}]}')(level1);
+  expect(reordered).toEqual([{ kind: "fall_check" }, { kind: "reach", goalId: "exit" }]);
+  const logs: string[] = [];
+  const fallback = await geminiPlannerWithFallback(async () => { throw new Error("503"); }, (m) => logs.push(m))(level1);
+  expect(fallback).toEqual(await defaultPlanner(level1));
+  expect(logs[0]).toContain("503");
   await expect(playtest(level1, { planner: geminiPlanner(async () => '{"goals":[{"kind":"reach","goalId":"ghost"}]}') }))
     .rejects.toThrow("unknown goals");
   await expect(playtest(level1, { planner: geminiPlanner(async () => "sure! here is a plan") })).rejects.toThrow("not JSON");

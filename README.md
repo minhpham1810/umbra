@@ -166,7 +166,7 @@ the navmesh first and then proved in the simulator:
 
 | Bug type | How it is found |
 | --- | --- |
-| `unreachable_goal` | `searchTarget` fails to reach the goal (walk, held jump, edge jumps over any number of gaps, platform rides, jump timings) |
+| `unreachable_goal` | `searchTarget` fails to reach the goal (walk, held jump, edge jumps over any number of gaps, platform rides, jump timings). The search is bounded, so this means "no route found", not a proof; there is no replay |
 | `fall_through` | Walking into an unmarked hole inside the level ends out of bounds in that cell |
 | `out_of_bounds` | Same, at the level's edge (for example, jumping a one-block wall) |
 
@@ -177,8 +177,10 @@ With `GEMINI_API_KEY` set, Gemini plans which tests to run and in what order
 (model `GEMINI_MODEL`, default `gemini-3.5-flash-lite`; check the free-tier list on
 Google's pricing page). Put the key in your shell or in a repo-root `.env`
 (git-ignored), for example `GEMINI_API_KEY=...`; shell variables win. Its JSON
-plan is schema-checked and may only name goals in the scene. Without a key, or if
-the Gemini call fails, every goal and the fall check run. Softlock and
+plan is schema-checked and may only name goals in the scene. It only sets the
+order: any goal or fall check it leaves out still runs, after its picks. Without a
+key, or if the Gemini call fails, the default plan runs. `haunt` uses the same
+planner. Softlock and
 trivial-skip checks are not implemented yet.
 
 ## Builder, Fixer and the agent loop
@@ -252,6 +254,6 @@ combined with platform rides. Stacked solid blocks in one column are merged into
 single collider so the player cannot climb walls on the seams. Boo & Co. replays are not
 yet viewable in Studio. Use the targeted Lantern commands above; other apps are still stubs.
 
-Rapier is pinned to 0.12.0. Goal collision fixes change simulation hashes from
+Rapier is pinned to 0.12.0. Goal collision fixes and hashing sim state outside Rapier change simulation hashes from
 earlier commits even though the Rapier version is unchanged; regenerate earlier
 expected hashes before comparing replays across those commits.

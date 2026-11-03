@@ -8,6 +8,7 @@ import { replaySave, searchTarget, type Point } from "./tools/api.js";
 
 /** fall_through: an unmarked hole inside the level; out_of_bounds: an escape over its edge. */
 export type BugType = "unreachable_goal" | "fall_through" | "out_of_bounds";
+// unreachable_goal means the bounded search found no route; the other two come with a reproducing replay.
 
 export interface Finding {
   type: BugType;
@@ -109,8 +110,9 @@ export async function playtest(scene: Scene, opts: PlaytestOptions = {}): Promis
       simRuns += r.attempts;
       if (!r.reached) {
         findings.push({ type: "unreachable_goal", goalId: g.id, cell: g.pos, navRoute: r.navRoute,
-          detail: `No input sequence reached "${g.id}" in ${r.attempts} runs` +
-            (r.navRoute ? " although the navmesh has a route." : "; the navmesh has no route either.") });
+          // A bounded search failing is not a proof; reached goals and falls are replayed, this is not.
+          detail: `Search exhausted: no input sequence found reaching "${g.id}" in ${r.attempts} runs (bounded search, not a proof)` +
+            (r.navRoute ? "; the navmesh has a route." : "; the navmesh has no route either.") });
       }
     } else {
       for (const hole of holeCandidates(scene)) {

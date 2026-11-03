@@ -10,7 +10,7 @@ These are hard constraints. Breaking any one of them can cause replays to diverg
 
 4. **Fixed timestep.** `world.step()` is called exactly once per tick with `dt = 1/60`. Never call it with a variable dt.
 
-5. **State hash every tick.** `hashWorld(world, rapierSnapshotHash)` is called after every step and stored in `tickHashes`. CI runs every replay twice in Node and once in a headless browser, then compares all hashes.
+5. **State hash every tick.** `hashWorld(world, rapierSnapshotHash, extra)` is called after every step and stored in `tickHashes`. `extra` holds sim state kept outside the ECS and Rapier (vertical velocity, riding platform, grounded, reached goals); any new state that affects later ticks must be added there. CI runs every replay twice in Node and once in a headless browser, then compares all hashes.
 
 6. **Integer game logic.** Health, keys, timers, counters — all integers in ECS. Only positions and velocities live in Rapier.
 

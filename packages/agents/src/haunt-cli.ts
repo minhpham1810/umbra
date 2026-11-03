@@ -4,7 +4,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { DEFAULT_GEMINI_MODEL, geminiGenerate, loadEnv } from "./gemini.js";
+import { DEFAULT_GEMINI_MODEL, geminiGenerate, geminiPlannerWithFallback, loadEnv } from "./gemini.js";
 import { runLoop } from "./loop.js";
 
 loadEnv();
@@ -15,7 +15,8 @@ const key = process.env["GEMINI_API_KEY"];
 if (!key) { console.error("GEMINI_API_KEY is not set (shell or repo-root .env)"); process.exit(2); }
 const model = process.env["GEMINI_MODEL"] ?? DEFAULT_GEMINI_MODEL;
 console.error(`model: ${model}`);
-const result = await runLoop(brief, geminiGenerate(key, model));
+const generate = geminiGenerate(key, model);
+const result = await runLoop(brief, generate, { planner: geminiPlannerWithFallback(generate) });
 // pnpm --filter runs from packages/agents; INIT_CWD is where the user ran the command.
 const path = name ? fileURLToPath(new URL(`../../../games/lantern/public/levels/${name}.json`, import.meta.url))
   : resolve(process.env["INIT_CWD"] ?? ".", out!);
