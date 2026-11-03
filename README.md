@@ -229,6 +229,23 @@ a Playtester fall-through finding, and its fix). Regenerate them with
 `pnpm --filter @umbra/studio samples`. Replays saved by the Playtester carry the
 finding as their `note`, which Studio shows.
 
+## Benchmark
+
+`benchmark/` measures how well a detector finds level bugs: 16 generated Lantern
+levels with a verified winning route, and 80 copies each carrying one planted bug
+(three kinds of unreachable exit, a missing floor tile, a side wall low enough to
+jump). Method and caveats: [`benchmark/README.md`](benchmark/README.md).
+
+```sh
+pnpm --filter @umbra/benchmark bench
+```
+
+| Detector | Planted bugs found | Clean levels flagged | Median time / level |
+| --- | --- | --- | --- |
+| Playtester | 80/80 | 0/16 | 4.9 s |
+| Random input, 300 runs | 65/80 | 16/16 | 33.3 s |
+| Navmesh path only | 48/80 | 16/16 | 0.0 s |
+
 ## Layout and current scope
 
 | Path | Purpose |
@@ -238,7 +255,7 @@ finding as their `note`, which Studio shows.
 | `games/lantern` | Playable Three.js level |
 | `games/boo-and-co` | Playable haunted-mansion management sim |
 | `apps/studio` | Replay viewer |
-| `benchmark` | Seed scenes and mutation stub |
+| `benchmark` | Seeded-bug benchmark: 96 levels with known answers, detector scores |
 | `.kiro` | Specs, steering, and hooks |
 
 Lantern's levels are `games/lantern/src/level.json` and `level-2.json`. The headless test proves a

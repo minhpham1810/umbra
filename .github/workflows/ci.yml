@@ -27,6 +27,7 @@ jobs:
       - run: pnpm lint
       - run: pnpm --filter @umbra/engine exec tsc --noEmit
       - run: pnpm --filter @umbra/agents exec tsc --noEmit
+      - run: pnpm --filter @umbra/benchmark exec tsc --noEmit
       - run: pnpm --filter @umbra/lantern build
       - run: pnpm --filter @umbra/boo-and-co build
       - run: pnpm --filter @umbra/studio build

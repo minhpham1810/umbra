@@ -2,6 +2,7 @@ packages:
   - "packages/*"
   - "games/*"
   - "apps/*"
+  - "benchmark"
 allowBuilds:
   esbuild: true
   # Not needed at runtime: a no-op echo and a version-scheme warning.
