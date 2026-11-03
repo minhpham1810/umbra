@@ -11,7 +11,8 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "mcp": "tsx src/mcp-stdio.ts",
-    "playtest": "tsx src/playtest-cli.ts"
+    "playtest": "tsx src/playtest-cli.ts",
+    "haunt": "tsx src/haunt-cli.ts"
   },
   "dependencies": {
     "@google/genai": "2.29.1",
