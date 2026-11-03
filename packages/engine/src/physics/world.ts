@@ -45,8 +45,22 @@ export function buildWorld(scene: Scene): { world: PhysicsWorld; handles: Physic
     a.pos.x - b.pos.x || a.pos.y - b.pos.y || a.pos.z - b.pos.z,
   );
 
+  // Solid blocks stacked in one column become one collider: the seams between
+  // stacked cuboids give ghost "ground" contacts that let the player climb walls.
+  const solid = sorted.filter((p) => SOLID.has(p.kind))
+    .sort((a, b) => a.pos.x - b.pos.x || a.pos.z - b.pos.z || a.pos.y - b.pos.y);
+  for (let i = 0; i < solid.length;) {
+    const { x, y, z } = solid[i]!.pos;
+    let top = y;
+    for (i++; i < solid.length && solid[i]!.pos.x === x && solid[i]!.pos.z === z && solid[i]!.pos.y <= top + 1; i++) {
+      top = Math.max(top, solid[i]!.pos.y);
+    }
+    const half = (top - y + 1) / 2;
+    const body = world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(x + HALF, y + half, z + HALF));
+    world.createCollider(RAPIER.ColliderDesc.cuboid(HALF, half, HALF), body);
+  }
   for (const piece of sorted) {
-    addPiece(world, piece);
+    if (!SOLID.has(piece.kind)) addPiece(world, piece);
   }
 
   // Goal sensors — one cuboid per goal, kinematic static.
@@ -82,23 +96,12 @@ export function buildWorld(scene: Scene): { world: PhysicsWorld; handles: Physic
 // ── piece geometry ────────────────────────────────────────────────────────────
 
 const HALF = 0.5; // all pieces are 1 m³ blocks
+// Ramps and stairs are still placeholder cubes.
+const SOLID = new Set<KitPiece["kind"]>(["floor", "wall", "stairs", "ramp"]);
 
+/** Non-solid pieces; solid blocks are merged into columns in buildWorld. */
 function addPiece(world: PhysicsWorld, piece: KitPiece): void {
   switch (piece.kind) {
-    case "floor":
-    case "wall":
-    case "stairs":
-    case "ramp": {
-      const body = world.createRigidBody(
-        RAPIER.RigidBodyDesc.fixed().setTranslation(
-          piece.pos.x + HALF,
-          piece.pos.y + HALF,
-          piece.pos.z + HALF,
-        ),
-      );
-      world.createCollider(RAPIER.ColliderDesc.cuboid(HALF, HALF, HALF), body);
-      break;
-    }
     case "pit":
       // Pits are gaps — no collider; out-of-bounds check handles falling.
       break;

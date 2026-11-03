@@ -50,6 +50,7 @@ export async function createSimulation(scene: Scene) {
   // Simple grounded state — we use the character controller's result.
   let grounded = true;
   let verticalVelocity = 0; // integer-only, in m/s
+  let lastMove = { x: 0, y: 0, z: 0 };
 
   const playerBody = physWorld.getRigidBody(handles.playerBody)!;
   const charCtrl = physWorld.createCharacterController(0.01);
@@ -95,6 +96,7 @@ export async function createSimulation(scene: Scene) {
     grounded = charCtrl.computedGrounded();
     if (grounded) verticalVelocity = Math.min(0, verticalVelocity);
 
+    lastMove = { x: computed.x, y: computed.y, z: computed.z };
     const pos = playerBody.translation();
     playerBody.setNextKinematicTranslation({
       x: pos.x + computed.x,
@@ -146,6 +148,11 @@ export async function createSimulation(scene: Scene) {
   return {
     step,
     position: () => ({ ...playerBody.translation() }),
+    /** Movement applied on the last tick, in m/s. */
+    velocity: () => ({ x: lastMove.x / FIXED_DT, y: lastMove.y / FIXED_DT, z: lastMove.z / FIXED_DT }),
+    get grounded() { return grounded; },
+    get tick() { return tick; },
+    get events(): readonly SimEvent[] { return events; },
     get outcome() { return outcome; },
     result: (): RunResult => ({ outcome, finalStateHash: tickHashes.at(-1) ?? 0,
       events: [...events], tickHashes: [...tickHashes] }),

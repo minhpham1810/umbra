@@ -134,3 +134,17 @@ it("Lantern level can be won with a jump across the gap", async () => {
     ({ buttons: BUTTON.FORWARD, yaw: 0 })), maxTicks: inputs.length });
   expect(walking.outcome).toBe("out_of_bounds");
 });
+
+it("holding jump against a stacked wall cannot climb it", async () => {
+  const scene: Scene = { ...FLAT_SCENE, spawn: { pos: { x: 0.5, y: 1.7, z: 0.5 }, yaw: 64 }, pieces: [...FLAT_SCENE.pieces,
+    ...[1, 2, 3].map((y) => ({ kind: "wall" as const, pos: { x: 2, y, z: 0 }, rot: 0 }))] };
+  const sim = await createSimulation(scene);
+  try {
+    let maxY = 0;
+    for (let i = 0; i < 240; i++) {
+      sim.step({ buttons: BUTTON.FORWARD | BUTTON.JUMP, yaw: 64 });
+      maxY = Math.max(maxY, sim.position().y);
+    }
+    expect(maxY).toBeLessThan(3.5); // a single jump peaks near 2.6; climbing would exceed the wall top at 4
+  } finally { sim.dispose(); }
+});
