@@ -80,7 +80,7 @@ importers:
 
   packages/engine:
     dependencies:
-      '@dimforge/rapier3d':
+      '@dimforge/rapier3d-compat':
         specifier: 0.12.0
         version: 0.12.0
       recast-navigation:
@@ -111,8 +111,8 @@ importers:
 
 packages:
 
-  '@dimforge/rapier3d@0.12.0':
-    resolution: {integrity: sha512-+31rbMJuhT5jrqNhXpLK8iaDsk9dg+8xiK+2QIOCAN++zDcLm2JvegQqsydzu6aL7OsAxBkGhWTfEmeLz+uAvw==}
+  '@dimforge/rapier3d-compat@0.12.0':
+    resolution: {integrity: sha512-uekIGetywIgopfD97oDL5PfeezkFpNhwlzlaEYNOA0N6ghdsOvh/HYjSMek5Q2O1PYvRSDFcqFVJl4r4ZBwOow==}
 
   '@esbuild/aix-ppc64@0.21.5':
     resolution: {integrity: sha512-1SDgH6ZSPTlggy1yI6+Dbkiz8xzpHJEVAlF/AM1tHPLsf5STom9rwtjE4hKAF20FfXXNTFqEYXyJNWh1GiZedQ==}
@@ -995,7 +995,7 @@ packages:
 
 snapshots:
 
-  '@dimforge/rapier3d@0.12.0': {}
+  '@dimforge/rapier3d-compat@0.12.0': {}
 
   '@esbuild/aix-ppc64@0.21.5':
     optional: true
