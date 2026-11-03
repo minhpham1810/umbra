@@ -56,10 +56,12 @@ export function buildWorld(scene: Scene): { world: PhysicsWorld; handles: Physic
     const g = sortedGoals[i]!;
     const body = world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(g.pos.x + 0.5, g.pos.y + 0.5, g.pos.z + 0.5));
     const coll = world.createCollider(
-      RAPIER.ColliderDesc.cuboid(0.45, 0.45, 0.45).setSensor(true),
+      RAPIER.ColliderDesc.cuboid(0.45, 0.45, 0.45).setSensor(true)
+        .setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS)
+        .setActiveCollisionTypes(RAPIER.ActiveCollisionTypes.ALL),
       body,
     );
-    goalSensors.set(coll.handle, i as unknown as EntityId);
+    goalSensors.set(coll.handle, scene.goals.indexOf(g) as EntityId);
   }
 
   // Player — kinematic position-based body + capsule collider.
@@ -71,6 +73,8 @@ export function buildWorld(scene: Scene): { world: PhysicsWorld; handles: Physic
     RAPIER.ColliderDesc.capsule(0.4, 0.3),
     playerBody,
   );
+
+  world.updateSceneQueries();
 
   return { world, handles: { playerBody: playerBody.handle, playerCollider: playerCollider.handle, goalSensors } };
 }

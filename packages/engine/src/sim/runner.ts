@@ -12,7 +12,7 @@ import type { InputFrame } from "../input/types.js";
 import { BUTTON, YAW_SIN, YAW_COS } from "../input/types.js";
 import type { Scene } from "../scene/schema.js";
 import type { SimEvent, SimOutcome } from "../replay/types.js";
-import { createWorld, addComponent, mkEntity } from "../ecs/types.js";
+import { createWorld } from "../ecs/types.js";
 import { hashWorld } from "../hash/state.js";
 import { initRapier, buildWorld, FIXED_DT } from "../physics/world.js";
 
@@ -35,17 +35,17 @@ const OUT_OF_BOUNDS_Y = -10;
 const PLAYER_SPEED = 5; // m/s — integer-friendly, no float constants into Rapier
 const JUMP_IMPULSE = 8; // m/s initial vy
 
-export async function runSim(opts: RunOptions): Promise<RunResult> {
+export async function createSimulation(scene: Scene) {
   await initRapier();
 
-  const { world: physWorld, handles } = buildWorld(opts.scene);
+  const { world: physWorld, handles } = buildWorld(scene);
   const ecsWorld = createWorld();
   const events: SimEvent[] = [];
   const tickHashes: number[] = [];
 
   // Track which goals are reached (by index).
   const goalsReached = new Set<number>();
-  const totalGoals = opts.scene.goals.length;
+  const totalGoals = scene.goals.length;
 
   // Simple grounded state — we use the character controller's result.
   let grounded = true;
@@ -60,13 +60,12 @@ export async function runSim(opts: RunOptions): Promise<RunResult> {
 
   let outcome: SimOutcome = "timeout";
 
-  const maxTicks = Math.min(opts.maxTicks, opts.inputs.length > 0 ? opts.inputs.length : opts.maxTicks);
-
-  for (let tick = 0; tick < maxTicks; tick++) {
+  let tick = 0;
+  let disposed = false;
+  function step(frame: InputFrame): void {
+    if (disposed) throw new Error("Simulation is disposed");
+    if (outcome !== "timeout") return;
     ecsWorld.tick = tick;
-
-    // ── 1. consume input ─────────────────────────────────────────────────────
-    const frame: InputFrame = opts.inputs[tick] ?? { buttons: 0, yaw: 0 };
 
     // Movement direction from LUT — no Math.sin/cos here.
     const sinYaw = YAW_SIN[frame.yaw] ?? 0;
@@ -90,7 +89,7 @@ export async function runSim(opts: RunOptions): Promise<RunResult> {
 
     // ── 2. character controller move ─────────────────────────────────────────
     const playerCollider = physWorld.getCollider(handles.playerCollider)!;
-    charCtrl.computeColliderMovement(playerCollider, { x: moveX, y: moveY, z: moveZ });
+    charCtrl.computeColliderMovement(playerCollider, { x: moveX, y: moveY, z: moveZ }, RAPIER.QueryFilterFlags.EXCLUDE_SENSORS, undefined, (collider) => !collider.isSensor());
     const computed = charCtrl.computedMovement();
 
     grounded = charCtrl.computedGrounded();
@@ -108,13 +107,13 @@ export async function runSim(opts: RunOptions): Promise<RunResult> {
 
     // ── 4. collision events → goal checks ────────────────────────────────────
     eventQueue.drainCollisionEvents((h1, h2, started) => {
-      if (!started) return;
+      if (!started || (h1 !== handles.playerCollider && h2 !== handles.playerCollider)) return;
       for (const [sensorHandle, goalIdx] of handles.goalSensors) {
         if (h1 === sensorHandle || h2 === sensorHandle) {
           const gi = goalIdx as unknown as number;
           if (!goalsReached.has(gi)) {
             goalsReached.add(gi);
-            const goal = opts.scene.goals[gi];
+            const goal = scene.goals[gi];
             events.push({ tick, kind: "goal_reached", ...(goal?.id !== undefined ? { goalId: goal.id } : {}) });
           }
         }
@@ -127,31 +126,48 @@ export async function runSim(opts: RunOptions): Promise<RunResult> {
       events.push({ tick, kind: "out_of_bounds", pos: { x: finalPos.x, y: finalPos.y, z: finalPos.z } });
       outcome = "out_of_bounds";
       tickHashes.push(hashWorld(ecsWorld, snapshotHash(physWorld)));
-      break;
+      tick++;
+      return;
     }
 
     // ── 6. win check ──────────────────────────────────────────────────────────
     if (goalsReached.size === totalGoals && totalGoals > 0) {
       outcome = "win";
       tickHashes.push(hashWorld(ecsWorld, snapshotHash(physWorld)));
-      break;
+      tick++;
+      return;
     }
 
     // ── 7. hash ───────────────────────────────────────────────────────────────
     tickHashes.push(hashWorld(ecsWorld, snapshotHash(physWorld)));
+    tick++;
   }
 
-  // Cleanup WASM memory.
-  charCtrl.free();
-  eventQueue.free();
-  physWorld.free();
-
   return {
-    outcome,
-    finalStateHash: tickHashes.at(-1) ?? 0,
-    events,
-    tickHashes,
+    step,
+    position: () => ({ ...playerBody.translation() }),
+    get outcome() { return outcome; },
+    result: (): RunResult => ({ outcome, finalStateHash: tickHashes.at(-1) ?? 0,
+      events: [...events], tickHashes: [...tickHashes] }),
+    dispose() {
+      if (disposed) return;
+      disposed = true;
+      charCtrl.free();
+      eventQueue.free();
+      physWorld.free();
+    },
   };
+}
+
+export async function runSim(opts: RunOptions): Promise<RunResult> {
+  const sim = await createSimulation(opts.scene);
+  try {
+    const maxTicks = Math.min(opts.maxTicks, opts.inputs.length || opts.maxTicks);
+    for (let tick = 0; tick < maxTicks && sim.outcome === "timeout"; tick++) {
+      sim.step(opts.inputs[tick] ?? { buttons: 0, yaw: 0 });
+    }
+    return sim.result();
+  } finally { sim.dispose(); }
 }
 
 /**
