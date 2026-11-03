@@ -3,12 +3,10 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { SceneSchema } from "@umbra/engine";
-import { DEFAULT_GEMINI_MODEL, geminiGenerate, geminiPlanner } from "./gemini.js";
+import { DEFAULT_GEMINI_MODEL, geminiGenerate, geminiPlanner, loadEnv } from "./gemini.js";
 import { defaultPlanner, playtest, type Planner } from "./playtester.js";
 
-// Load the repo-root .env (git-ignored) if there is one; real env vars win.
-try { process.loadEnvFile(new URL("../../../.env", import.meta.url)); }
-catch (e) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e; }
+loadEnv();
 
 const file = process.argv[2];
 if (!file) { console.error("usage: playtest <scene.json>"); process.exit(2); }

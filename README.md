@@ -139,6 +139,23 @@ plan is schema-checked and may only name goals in the scene. Without a key, or i
 the Gemini call fails, every goal and the fall check run. Softlock and
 trivial-skip checks are not implemented yet.
 
+## Builder, Fixer and the agent loop
+
+```sh
+pnpm --silent --filter @umbra/agents haunt "A crypt corridor: jump a gap, then climb a ledge." level.json
+```
+
+Needs `GEMINI_API_KEY`. The Builder asks Gemini for a small blueprint (floor
+rectangles with heights, pits, moving platforms, spawn, exit), compiles it to kit
+pieces with a two-high wall ring, and feeds compile errors back until it is valid
+(3 attempts). The Playtester then runs, and the Fixer handles each finding: Gemini
+proposes up to 12 edits (`add_floor`, `add_wall`, `remove`), and an edit is kept
+only if a full playtest no longer reproduces the bug and finds nothing new. There
+is no add-pit edit, so a hole cannot be fixed by marking it intended. The CLI
+writes the scene, prints the build, fixes and unresolved findings, and exits 1 if
+any remain. Fixes that need two separate jumps are rejected, because the search
+cannot prove those routes yet.
+
 ## Layout and current scope
 
 | Path | Purpose |
