@@ -31,6 +31,25 @@ Open a level directly with `?level=2`. Falling ends the run.
 Keyboard controls work without mouse capture. A desktop browser with WebGL
 and a keyboard is required; touch controls are not implemented.
 
+## Run Boo & Co.
+
+```sh
+pnpm --filter @umbra/boo-and-co dev
+```
+
+A bright top-down management sim: you run a haunted mansion. Pick a ghost (30
+coins, scares one visitor within 2 tiles every half second) or a trap (20 coins,
+double scare for whoever steps on it, every 3 seconds) and click floor tiles to
+build. Hit the scare quota before the day ends. Mouse only; drag to orbit, scroll
+to zoom, Space pauses, and 1×–8× sets the speed. Visitors who get scared enough
+flee back to the entrance, and in a one-wide hallway they can jam against new
+arrivals; the HUD counts stuck visitors.
+
+The simulation (`packages/engine/src/mansion`) is integer-only on a grid with one
+visitor per cell, instead of the navmesh crowds in the design, so it is
+deterministic in every browser. The mansion is `games/boo-and-co/src/mansion.json`;
+its quota (125) is set above what 90% of random build plans reach.
+
 ## Build Lantern
 
 ```sh
@@ -180,7 +199,7 @@ finding as their `note`, which Studio shows.
 | `packages/engine` | Physics, scene schema, replay loop, hashing, navigation |
 | `packages/agents` | Typed scene, simulation, replay, and navigation tools |
 | `games/lantern` | Playable Three.js level |
-| `games/boo-and-co` | Stub for the second game |
+| `games/boo-and-co` | Playable haunted-mansion management sim |
 | `apps/studio` | Replay viewer |
 | `benchmark` | Seed scenes and mutation stub |
 | `.kiro` | Specs, steering, and hooks |
@@ -203,8 +222,8 @@ jump, edge jumps (jump when the ground ahead drops away or rises one block, whic
 crosses any number of gaps), one ride per moving platform, then one jump at each tick
 offset. It only reports a route a fresh `runSim` reproduces. Edge jumps are not
 combined with platform rides. Stacked solid blocks in one column are merged into a
-single collider so the player cannot climb walls on the seams. `search.strategy`,
-Studio and Boo & Co. remain unfinished. Use the targeted Lantern commands above; other apps are still stubs.
+single collider so the player cannot climb walls on the seams. `search.strategy` and
+the Boo & Co. balance checks remain unfinished. Use the targeted Lantern commands above; other apps are still stubs.
 
 Rapier is pinned to 0.12.0. Goal collision fixes change simulation hashes from
 earlier commits even though the Rapier version is unchanged; regenerate earlier

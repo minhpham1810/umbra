@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Boo &amp; Co. · Umbra</title>
+  <style>
+    :root { --ink: #3b2f4a; --muted: #7a6d8a; --card: rgba(255, 250, 244, .94); --line: #e3d6ea;
+      --ghost: #8f7ae6; --trap: #ef7b8c; --ok: #3aa889; --bad: #d9536a; }
+    * { box-sizing: border-box; }
+    body { margin: 0; overflow: hidden; background: #fbe9e1; color: var(--ink); font: 15px/1.45 "Trebuchet MS", system-ui, sans-serif; }
+    canvas { display: block; width: 100vw; height: 100vh; }
+    .card { position: fixed; background: var(--card); border: 2px solid var(--line); border-radius: 16px;
+      box-shadow: 0 6px 20px rgba(59, 47, 74, .12); padding: 14px 16px; }
+    #hud { top: 16px; left: 16px; min-width: 240px; }
+    h1 { margin: 0 0 6px; font-size: 24px; letter-spacing: .02em; }
+    .stat { display: flex; justify-content: space-between; gap: 16px; font-variant-numeric: tabular-nums; }
+    .stat b { font-weight: 700; }
+    meter { width: 100%; height: 12px; margin: 4px 0 8px; }
+    #tools { bottom: 16px; left: 50%; transform: translateX(-50%); width: max-content; max-width: calc(100vw - 32px); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: center; }
+    button { font: inherit; color: var(--ink); background: #fff; border: 2px solid var(--line); border-radius: 12px; padding: 8px 14px; cursor: pointer; }
+    button:hover { border-color: var(--muted); }
+    button[aria-pressed="true"] { border-color: var(--ink); background: #f4ecff; }
+    button:focus-visible { outline: 3px solid var(--ghost); outline-offset: 2px; }
+    .sep { width: 1px; align-self: stretch; background: var(--line); }
+    #msg { top: 16px; right: 16px; max-width: 320px; }
+    #msg p { margin: 0; }
+    #end { inset: 0; margin: auto; width: min(420px, calc(100vw - 32px)); height: fit-content; text-align: center; display: none; }
+    #end h2 { margin: 0 0 8px; font-size: 28px; }
+    .help { color: var(--muted); font-size: 13px; }
+    @media (max-width: 640px) { #hud { left: 8px; top: 8px; min-width: 0; right: 8px; } #msg { display: none; } #tools { bottom: 8px; width: calc(100vw - 16px); } }
+  </style>
+</head>
+<body>
+  <canvas aria-label="Haunted mansion, seen from above. Click a floor tile to build."></canvas>
+  <section id="hud" class="card" aria-label="Status">
+    <h1>Boo &amp; Co.</h1>
+    <div class="stat"><span>Scares</span><b id="scares">0 / 0</b></div>
+    <meter id="quota" min="0" max="1" value="0" aria-label="Scare quota progress"></meter>
+    <div class="stat"><span>Coins to spend</span><b id="coins">0</b></div>
+    <div class="stat"><span>Time left</span><b id="time">0:00</b></div>
+    <div class="stat"><span>Visitors in / fled / left</span><b id="visitors">0 / 0 / 0</b></div>
+    <div class="stat"><span>Stuck</span><b id="stuck">0</b></div>
+  </section>
+  <section id="msg" class="card" role="status" aria-live="polite"><p id="hint">Pick a ghost or trap, then click a floor tile.</p></section>
+  <section id="tools" class="card" aria-label="Build and time controls">
+    <button id="tool-ghost" type="button" aria-pressed="true">Ghost · 30</button>
+    <button id="tool-trap" type="button" aria-pressed="false">Trap · 20</button>
+    <span class="sep"></span>
+    <button id="pause" type="button">Pause</button>
+    <button data-speed="1" type="button" aria-pressed="true">1×</button>
+    <button data-speed="2" type="button" aria-pressed="false">2×</button>
+    <button data-speed="4" type="button" aria-pressed="false">4×</button>
+    <button data-speed="8" type="button" aria-pressed="false">8×</button>
+    <span class="sep"></span>
+    <button id="restart" type="button">Restart</button>
+  </section>
+  <section id="end" class="card" role="dialog" aria-labelledby="end-title">
+    <h2 id="end-title"></h2><p id="end-text"></p><button id="again" type="button">Play again</button>
+  </section>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

@@ -14,6 +14,7 @@ import { chromium } from "playwright";
 import { runSim } from "../src/sim/runner.js";
 import { SceneSchema, type Scene } from "../src/scene/schema.js";
 import type { InputFrame } from "../src/input/types.js";
+import { MansionSchema, runMansion, type PlacementInput } from "../src/mansion/mansion.js";
 
 const ENGINE = resolve(import.meta.dirname, "..");
 const REPO_ROOT = resolve(ENGINE, "../..");
@@ -35,7 +36,7 @@ for (const dir of ["games/lantern/src", "benchmark/levels/clean", "benchmark/lev
 const cases = scenes.flatMap(([name, scene]) => [1, 2, 3].map((seed) => ({ name: `${name}#${seed}`, scene, seed, inputs: inputs(seed) })));
 
 const bundle = await build({
-  stdin: { contents: `export { runSim } from "./src/sim/runner.ts";`, resolveDir: ENGINE, loader: "ts" },
+  stdin: { contents: `export { runSim } from "./src/sim/runner.ts";\nexport { runMansion } from "./src/mansion/mansion.ts";`, resolveDir: ENGINE, loader: "ts" },
   bundle: true, format: "iife", globalName: "Umbra", platform: "browser", write: false,
 });
 
@@ -53,6 +54,17 @@ try {
     return out;
   }, cases);
 
+  // Boo & Co.: the mansion sim with a fixed build plan, compared the same way.
+  const mansion = MansionSchema.parse(JSON.parse(readFileSync(join(REPO_ROOT, "games/boo-and-co/src/mansion.json"), "utf8")));
+  const plan: PlacementInput[] = [{ kind: "ghost", x: 4, y: 3 }, { kind: "trap", x: 11, y: 5 }, { kind: "ghost", x: 18, y: 7, tick: 900 }];
+  const webMansion = await page.evaluate(({ m, p }) => {
+    // @ts-expect-error Umbra is the IIFE global from the bundle
+    return globalThis.Umbra.runMansion(m, p).finalStateHash as number;
+  }, { m: mansion, p: plan });
+  const nodeMansion = runMansion(mansion, plan).finalStateHash;
+  if (webMansion !== nodeMansion) { console.error(`DIVERGED boo-and-co mansion: node=${nodeMansion} browser=${webMansion}`); failed++; }
+  else console.log(`OK       boo-and-co/mansion.json  ${mansion.durationTicks} ticks  hash=${nodeMansion}`);
+
   for (const [i, c] of cases.entries()) {
     const node = (await runSim({ ...c, maxTicks: c.inputs.length })).tickHashes;
     const web = browserHashes[i]!;
@@ -64,5 +76,6 @@ try {
   }
 } finally { await browser.close(); }
 
-console.log(`\n${cases.length - failed} passed, ${failed} failed`);
+const total = cases.length + 1; // + the mansion
+console.log(`\n${total - failed} passed, ${failed} failed`);
 if (failed > 0) process.exit(1);

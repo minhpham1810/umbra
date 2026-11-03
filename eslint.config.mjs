@@ -9,7 +9,7 @@ export default tseslint.config(
   { ignores: ["**/dist/**", "**/node_modules/**"] },
   { files: ["**/*.ts"], languageOptions: { parser: tseslint.parser } },
   {
-    files: ["packages/engine/src/{sim,physics,hash,ecs,input}/**/*.ts"],
+    files: ["packages/engine/src/{sim,physics,hash,ecs,input,mansion}/**/*.ts"],
     ignores: ["**/*.test.ts"],
     rules: {
       "no-restricted-properties": ["error", ...banned],

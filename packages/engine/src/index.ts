@@ -6,3 +6,4 @@ export * from "./replay/types.js";
 export * from "./physics/world.js";
 export * from "./sim/runner.js";
 export * from "./nav/nav.js";
+export * from "./mansion/mansion.js";
