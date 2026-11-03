@@ -99,6 +99,20 @@ the local query extent return `{ found: false, waypoints: [] }`. Points may snap
 within 0.5 metres horizontally and 1 metre vertically. Navmesh paths are route
 proposals, not proof a player can complete a jump.
 
+## MCP tools server
+
+```sh
+pnpm --silent --filter @umbra/agents mcp
+```
+
+Serves the agent tools over stdio: `scene.validate`, `scene.write`, `nav.bake`,
+`nav.path`, `sim.run`, `sim.observe`, `search.reach`, `replay.save`. Kiro picks it
+up from `.kiro/settings/mcp.json`. Any MCP client can launch the same command.
+Inputs are Zod-validated and capped at 18,000 ticks per run and 2,000 sim runs per
+search. `scene.write` only writes `.json` files inside `UMBRA_SCENES_DIR`
+(default: the working directory); replays go to `UMBRA_REPLAYS_DIR` (default
+`./replays`). Navmesh IDs live until the server exits.
+
 ## Layout and current scope
 
 | Path | Purpose |
@@ -128,7 +142,7 @@ It follows the navmesh route (or a straight line), tries no jump, held jump, the
 one jump at each tick offset, and only reports a route a fresh `runSim` reproduces.
 It cannot yet find routes needing two separate jumps. Stacked solid blocks in one
 column are merged into a single collider so the player cannot climb walls on the
-seams. The MCP server, `search.strategy`, and the agent loop remain unfinished. Use the targeted Lantern commands above; other apps are still stubs.
+seams. `search.strategy` and the agent loop remain unfinished. Use the targeted Lantern commands above; other apps are still stubs.
 
 Rapier is pinned to 0.12.0. Goal collision fixes change simulation hashes from
 earlier commits even though the Rapier version is unchanged; regenerate earlier

@@ -1,6 +1,6 @@
 /**
  * Agent tool API — the typed surface agents (and Kiro) call.
- * Each function here will be wrapped as an MCP tool in apps/studio.
+ * Each function here is served as an MCP tool by src/mcp.ts.
  */
 import { validateScene, type Scene } from "@umbra/engine";
 import { runSim, createSimulation, navBake, navPath, navDispose, BUTTON, IDLE_FRAME, type RunResult } from "@umbra/engine";
@@ -16,13 +16,24 @@ export function sceneValidate(raw: unknown): ValidateResult {
   return validateScene(raw);
 }
 
+/** Writes a validated scene as JSON. `path` must stay inside UMBRA_SCENES_DIR (default: cwd). */
 export async function sceneWrite(
   path: string,
   scene: Scene,
-): Promise<{ version: number }> {
-  const { writeFile } = await import("node:fs/promises");
-  await writeFile(path, JSON.stringify(scene, null, 2), "utf8");
-  return { version: scene.version };
+): Promise<{ version: number; path: string }> {
+  const { writeFile, mkdir } = await import("node:fs/promises");
+  const { resolve, relative, isAbsolute, dirname } = await import("node:path");
+  const root = resolve(process.env["UMBRA_SCENES_DIR"] ?? ".");
+  const target = resolve(root, path);
+  const rel = relative(root, target);
+  if (!rel || rel.startsWith("..") || isAbsolute(rel) || !target.endsWith(".json")) {
+    throw new Error(`Scene path must be a .json file inside ${root}`);
+  }
+  const valid = validateScene(scene);
+  if (!valid.ok) throw new Error(`Invalid scene: ${valid.errors.join("; ")}`);
+  await mkdir(dirname(target), { recursive: true });
+  await writeFile(target, JSON.stringify(valid.scene, null, 2), "utf8");
+  return { version: valid.scene.version, path: target };
 }
 
 // ── sim tools ────────────────────────────────────────────────────────────────
