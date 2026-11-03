@@ -4,3 +4,6 @@ packages:
   - "apps/*"
 allowBuilds:
   esbuild: true
+  # Not needed at runtime: a no-op echo and a version-scheme warning.
+  "@google/genai": false
+  protobufjs: false

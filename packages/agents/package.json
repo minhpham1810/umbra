@@ -10,9 +10,11 @@
     "dev": "tsup src/index.ts --format esm --dts --watch",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "mcp": "tsx src/mcp-stdio.ts"
+    "mcp": "tsx src/mcp-stdio.ts",
+    "playtest": "tsx src/playtest-cli.ts"
   },
   "dependencies": {
+    "@google/genai": "2.29.1",
     "@modelcontextprotocol/sdk": "1.32.1",
     "@umbra/engine": "workspace:*",
     "zod": "^3.23.8"
