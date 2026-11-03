@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import fc from "fast-check";
-import { runSim } from "./runner.js";
+import { runSim, createSimulation } from "./runner.js";
 import { initRapier } from "../physics/world.js";
 import { BUTTON, IDLE_FRAME } from "../input/types.js";
 import type { InputFrame, Scene } from "../index.js";
@@ -89,4 +89,48 @@ describe("outcomes", () => {
     expect(a.outcome).not.toBe("out_of_bounds");
     expect(a.finalStateHash).toBe(b.finalStateHash);
   });
+});
+
+// A reachable sensor must report its original ID after construction is sorted.
+it("reaches goals in scene order and wins", async () => {
+  const scene: Scene = { ...FLAT_SCENE,
+    spawn: { pos: { x: 1.5, y: 1.71, z: 0.5 }, yaw: 64 },
+    goals: [
+      { id: "z-first", kind: "key", pos: { x: 2, y: 1, z: 0 } },
+      { id: "a-last", kind: "exit", pos: { x: 4, y: 1, z: 0 } },
+    ],
+  };
+  const result = await runSim({ scene, seed: 1, maxTicks: 60,
+    inputs: Array.from({ length: 60 }, () => ({ buttons: BUTTON.FORWARD, yaw: 64 })),
+  });
+  expect(result.outcome).toBe("win");
+  expect(result.events.map(e => e.goalId)).toEqual(["z-first", "a-last"]);
+});
+
+it("interactive ticks match headless replay hashes", async () => {
+  const inputs = Array.from({ length: 60 }, (_, i) => ({
+    buttons: i < 25 ? BUTTON.JUMP | BUTTON.FORWARD : BUTTON.RIGHT, yaw: 32,
+  }));
+  const sim = await createSimulation(FLAT_SCENE);
+  try {
+    for (const frame of inputs) sim.step(frame);
+    const result = await runSim({ scene: FLAT_SCENE, seed: 1, inputs, maxTicks: 60 });
+    expect(sim.result()).toEqual(result);
+    expect(sim.position().x).toBeGreaterThan(0);
+  } finally { sim.dispose(); }
+});
+
+it("Lantern level can be won with a jump across the gap", async () => {
+  const { readFileSync } = await import("node:fs");
+  const { SceneSchema } = await import("../scene/schema.js");
+  const scene = SceneSchema.parse(JSON.parse(readFileSync(
+    new URL("../../../../games/lantern/src/level.json", import.meta.url), "utf8")));
+  const inputs = Array.from({ length: 180 }, (_, i) => ({
+    buttons: BUTTON.FORWARD | (i === 58 ? BUTTON.JUMP : 0), yaw: 0,
+  }));
+  const result = await runSim({ scene, seed: 1, inputs, maxTicks: inputs.length });
+  expect(result.outcome).toBe("win");
+  const walking = await runSim({ scene, seed: 1, inputs: inputs.map(() =>
+    ({ buttons: BUTTON.FORWARD, yaw: 0 })), maxTicks: inputs.length });
+  expect(walking.outcome).toBe("out_of_bounds");
 });

@@ -26,6 +26,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @umbra/engine exec tsc --noEmit
       - run: pnpm --filter @umbra/agents exec tsc --noEmit
+      - run: pnpm --filter @umbra/lantern build
 
   # ── engine tests (includes determinism property tests) ────────────────────
   test-engine:
@@ -41,8 +42,8 @@ jobs:
           node-version: "20"
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
-      - name: Run Vitest (schema + determinism property)
-        run: pnpm --filter @umbra/engine test
+      - name: Run Vitest (engine + agent API)
+        run: pnpm test
       - name: Double-run determinism check on benchmark scenes
         run: pnpm --filter @umbra/engine determinism-check
 

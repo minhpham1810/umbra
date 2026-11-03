@@ -110,3 +110,6 @@ export async function searchReach(
   // TODO: bake navmesh, pathfind, convert to inputs, run sim
   return { reached: false, inputs: [], attempts: 0 };
 }
+
+export { navBake, navPath, navDispose } from "@umbra/engine";
+export type { NavBakeResult, NavPathResult, NavIsland } from "@umbra/engine";
