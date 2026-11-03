@@ -1,7 +1,8 @@
 # Umbra
 
 A TypeScript 3D engine for games and headless agent runs. Rapier owns physics;
-the games draw with Three.js, or with the engine's Canvas 2D views (`?view=2d`).
+the engine's Three.js views (`@umbra/engine/three`, Three.js as an optional peer
+dependency) or its Canvas 2D views (`?view=2d`) draw the games.
 Browser play and `runSim` use the same fixed 60 Hz loop.
 
 ## Run Lantern
@@ -260,11 +261,24 @@ pnpm --filter @umbra/benchmark bench
 | Random input, 300 runs | 65/80 | 16/16 | 33.3 s |
 | Navmesh path only | 48/80 | 16/16 | 0.0 s |
 
+## Rendering
+
+The engine draws but never owns a game's look; every view only reads sim state, so a
+run hashes the same however it is drawn.
+
+| Import | Views |
+| --- | --- |
+| `@umbra/engine` | Canvas 2D: `drawSceneSide` (side view of a kit scene) and `drawGridTop` (top-down tile grid), with `centerView`, `fitView`, `toWorld` |
+| `@umbra/engine/three` | Three.js: `kitSceneView` (blocks, pits, platforms, crates, goals; `update()` per frame) and `gridView` (tile boxes with pickable floors) |
+
+Materials, lights, cameras and characters stay in each game: Lantern adds its lantern
+light and fog, Studio its trail and Fixer outlines, Boo & Co. its ghosts and visitors.
+
 ## Layout and current scope
 
 | Path | Purpose |
 | --- | --- |
-| `packages/engine` | Physics, scene schema, replay loop, hashing, navigation, Canvas 2D views |
+| `packages/engine` | Physics, scene schema, replay loop, hashing, navigation, 2D and Three.js views |
 | `packages/agents` | Typed scene, simulation, replay, and navigation tools |
 | `games/lantern` | Playable Three.js level |
 | `games/boo-and-co` | Playable haunted-mansion management sim |

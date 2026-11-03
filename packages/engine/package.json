@@ -3,11 +3,12 @@
   "version": "0.0.1",
   "type": "module",
   "exports": {
-    ".": "./dist/index.js"
+    ".": "./dist/index.js",
+    "./three": "./dist/three.js"
   },
   "scripts": {
-    "build": "tsup src/index.ts --format esm --dts",
-    "dev": "tsup src/index.ts --format esm --dts --watch",
+    "build": "tsup --entry.index src/index.ts --entry.three src/render3d/three.ts --format esm --dts",
+    "dev": "tsup --entry.index src/index.ts --entry.three src/render3d/three.ts --format esm --dts --watch",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "determinism-check": "tsx scripts/determinism-check.ts",
@@ -21,12 +22,22 @@
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "@types/three": "^0.169.0",
     "esbuild": "0.21.5",
     "fast-check": "^3.22.0",
     "playwright": "1.56.1",
+    "three": "^0.169.0",
     "tsup": "^8.3.5",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3",
     "vitest": "^2.1.4"
+  },
+  "peerDependencies": {
+    "three": ">=0.160.0"
+  },
+  "peerDependenciesMeta": {
+    "three": {
+      "optional": true
+    }
   }
 }

@@ -4,7 +4,8 @@
  */
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { CRATE_HALF, SceneSchema, createSimulation, type InputFrame, type Scene, type SimEvent } from "@umbra/engine";
+import { kitSceneView, type KitView } from "@umbra/engine/three";
+import { SceneSchema, createSimulation, type InputFrame, type Scene, type SimEvent } from "@umbra/engine";
 
 const $ = <T extends HTMLElement>(sel: string) => document.querySelector<T>(sel)!;
 const canvas = $<HTMLCanvasElement>("canvas");
@@ -91,7 +92,6 @@ view.add(new THREE.HemisphereLight(0xdfe6f5, 0x2a2633, 1.6));
 const sun = new THREE.DirectionalLight(0xffffff, 1.4);
 sun.position.set(8, 20, 6);
 view.add(sun);
-const box = new THREE.BoxGeometry(1, 1, 1);
 const mats = {
   floor: new THREE.MeshStandardMaterial({ color: 0x6b6f80, roughness: 0.9 }),
   wall: new THREE.MeshStandardMaterial({ color: 0x3e4252, roughness: 0.9, transparent: true, opacity: 0.55 }),
@@ -104,44 +104,16 @@ const mats = {
 };
 const playerMesh = new THREE.Mesh(new THREE.CapsuleGeometry(0.3, 0.8, 4, 12), mats.player);
 let level = new THREE.Group();
-let platformMeshes: THREE.Mesh[] = [];
-let crateMeshes: THREE.Mesh[] = [];
+let kit: KitView | undefined;
 view.add(playerMesh);
 
 function buildLevel(loaded: Loaded, edits: EditMark[]) {
   view.remove(level);
-  level.traverse((o) => { if (o instanceof THREE.Line || o instanceof THREE.Mesh && o.geometry !== box) o.geometry.dispose(); });
+  // Frees the kit view's geometry too, along with the outlines, trail and event dots.
+  level.traverse((o) => { if (o instanceof THREE.Line || o instanceof THREE.Mesh) o.geometry.dispose(); });
   level = new THREE.Group();
-  for (const p of loaded.scene.pieces) {
-    if (p.kind === "moving_platform" || p.kind === "crate") continue;
-    if (p.kind === "pit") {
-      const plane = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mats.pit);
-      plane.rotation.x = -Math.PI / 2;
-      plane.position.set(p.pos.x + 0.5, p.pos.y + 1.01, p.pos.z + 0.5);
-      level.add(plane);
-      continue;
-    }
-    const mesh = new THREE.Mesh(box, p.kind === "wall" ? mats.wall : mats.floor);
-    mesh.position.set(p.pos.x + 0.5, p.pos.y + 0.5, p.pos.z + 0.5);
-    level.add(mesh);
-  }
-  platformMeshes = loaded.platforms[0]!.map(() => {
-    const m = new THREE.Mesh(box, mats.platform);
-    m.scale.y = 0.25;
-    level.add(m);
-    return m;
-  });
-  crateMeshes = loaded.crates[0]!.map(() => {
-    const m = new THREE.Mesh(box, mats.crate);
-    m.scale.setScalar(2 * CRATE_HALF);
-    level.add(m);
-    return m;
-  });
-  for (const g of loaded.scene.goals) {
-    const m = new THREE.Mesh(box, mats.goal);
-    m.position.set(g.pos.x + 0.5, g.pos.y + 0.5, g.pos.z + 0.5);
-    level.add(m);
-  }
+  kit = kitSceneView(loaded.scene, mats);
+  level.add(kit.group);
   // Outline the cells the Fixer changed: green for added blocks, red for removed ones.
   for (const e of edits) {
     const outline = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(1.06, 1.06, 1.06)),
@@ -181,8 +153,7 @@ function show(t: number) {
   tick = Math.max(0, Math.min(t, current.player.length - 1));
   const p = current.player[tick]!;
   playerMesh.position.set(p.x, p.y, p.z);
-  current.platforms[tick]!.forEach((q, i) => platformMeshes[i]?.position.set(q.x, q.y, q.z));
-  current.crates[tick]!.forEach((q, i) => crateMeshes[i]?.position.set(q.x, q.y, q.z));
+  kit?.update({ platforms: current.platforms[tick]!, crates: current.crates[tick]! });
   ui.scrub.value = String(tick);
   ui.tick.textContent = `${tick} / ${current.player.length - 1}`;
   if (ui.follow.checked) controls.target.lerp(new THREE.Vector3(p.x, p.y, p.z), 0.2);

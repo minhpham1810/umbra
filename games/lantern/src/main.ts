@@ -1,5 +1,6 @@
 import * as THREE from "three";
-import { BUTTON, CRATE_HALF, FIXED_DT, SceneSchema, centerView, createSimulation, drawSceneSide, sideLayout, type Scene, type SideLayout } from "@umbra/engine";
+import { kitSceneView } from "@umbra/engine/three";
+import { BUTTON, FIXED_DT, SceneSchema, centerView, createSimulation, drawSceneSide, sideLayout, type Scene, type SideLayout } from "@umbra/engine";
 import level1 from "./level.json";
 import level2 from "./level-2.json";
 
@@ -42,7 +43,7 @@ interface View {
   dispose(): void;
 }
 
-function threeView(level: Scene, platformCount: number, crateCount: number): View {
+function threeView(level: Scene): View {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
   renderer.shadowMap.enabled = true;
@@ -53,35 +54,13 @@ function threeView(level: Scene, platformCount: number, crateCount: number): Vie
   scene.fog = new THREE.FogExp2(0x080b12, 0.045);
   const camera = new THREE.PerspectiveCamera(58, 1, 0.1, 60);
   scene.add(new THREE.HemisphereLight(0x9eafd0, 0x25202a, 1.1));
-  const box = new THREE.BoxGeometry(1, 1, 1);
   const floor = new THREE.MeshStandardMaterial({ color: 0x555564, roughness: 0.95 });
   const wall = new THREE.MeshStandardMaterial({ color: 0x343744, roughness: 0.95 });
-  for (const piece of level.pieces) {
-    if (piece.kind === "pit" || piece.kind === "moving_platform" || piece.kind === "crate") continue;
-    const mesh = new THREE.Mesh(box, piece.kind === "wall" ? wall : floor);
-    mesh.position.set(piece.pos.x + 0.5, piece.pos.y + 0.5, piece.pos.z + 0.5);
-    mesh.receiveShadow = true;
-    mesh.castShadow = true;
-    scene.add(mesh);
-  }
-  // One mesh per platform, in the order sim.platforms() reports them.
-  const platformMeshes = Array.from({ length: platformCount }, () => {
-    const mesh = new THREE.Mesh(box, floor);
-    mesh.scale.y = 0.25;
-    mesh.receiveShadow = true;
-    mesh.castShadow = true;
-    scene.add(mesh);
-    return mesh;
-  });
   const crateMaterial = new THREE.MeshStandardMaterial({ color: 0x8a6a44, roughness: 0.9 });
-  const crateMeshes = Array.from({ length: crateCount }, () => {
-    const mesh = new THREE.Mesh(box, crateMaterial);
-    mesh.scale.setScalar(2 * CRATE_HALF);
-    mesh.receiveShadow = true;
-    mesh.castShadow = true;
-    scene.add(mesh);
-    return mesh;
-  });
+  const goalMaterial = new THREE.MeshStandardMaterial({ color: 0x72e5be,
+    emissive: 0x39cfa0, emissiveIntensity: 2, wireframe: true });
+  const kit = kitSceneView(level, { floor, wall, platform: floor, crate: crateMaterial, goal: goalMaterial }, { shadows: true });
+  scene.add(kit.group);
   const playerGeometry = new THREE.CapsuleGeometry(0.3, 0.8, 4, 12);
   const playerMaterial = new THREE.MeshStandardMaterial({ color: 0xc8c4b5, roughness: 0.85 });
   const player = new THREE.Mesh(playerGeometry, playerMaterial);
@@ -91,22 +70,16 @@ function threeView(level: Scene, platformCount: number, crateCount: number): Vie
   lantern.castShadow = true;
   lantern.shadow.mapSize.set(1024, 1024);
   scene.add(lantern);
-  const goalMaterial = new THREE.MeshStandardMaterial({ color: 0x72e5be,
-    emissive: 0x39cfa0, emissiveIntensity: 2, wireframe: true });
   for (const goal of level.goals) {
-    const marker = new THREE.Mesh(box, goalMaterial);
-    marker.position.set(goal.pos.x + 0.5, goal.pos.y + 0.5, goal.pos.z + 0.5);
-    scene.add(marker);
     const light = new THREE.PointLight(0x72e5be, 12, 8);
-    light.position.copy(marker.position);
+    light.position.set(goal.pos.x + 0.5, goal.pos.y + 0.5, goal.pos.z + 0.5);
     scene.add(light);
   }
   const lookAt = new THREE.Vector3();
   return {
     render(position, platforms, crates, yaw) {
       player.position.copy(position);
-      platformMeshes.forEach((mesh, i) => mesh.position.copy(platforms[i]!));
-      crateMeshes.forEach((mesh, i) => mesh.position.copy(crates[i]!));
+      kit.update({ platforms, crates });
       const radians = yaw / 256 * Math.PI * 2;
       camera.position.set(position.x - Math.sin(radians) * 4, position.y + 2.6, position.z - Math.cos(radians) * 4);
       lookAt.copy(position); lookAt.y += 0.5;
@@ -120,7 +93,7 @@ function threeView(level: Scene, platformCount: number, crateCount: number): Vie
       camera.updateProjectionMatrix();
     },
     dispose() {
-      renderer.dispose(); box.dispose(); playerGeometry.dispose();
+      renderer.dispose(); kit.dispose(); playerGeometry.dispose();
       floor.dispose(); wall.dispose(); crateMaterial.dispose(); playerMaterial.dispose(); goalMaterial.dispose();
     },
   };
@@ -148,7 +121,7 @@ async function start() {
   const level = await loadLevel();
   let sim = await createSimulation(level);
   const side = flat ? sideLayout(level) : undefined;
-  const view = side ? canvasView(side) : threeView(level, sim.platforms().length, sim.crates().length);
+  const view = side ? canvasView(side) : threeView(level);
   let platformsBefore = sim.platforms();
   let platformsNow = platformsBefore;
   let cratesBefore = sim.crates();
