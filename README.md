@@ -24,8 +24,10 @@ so development does not need a package build first.
 | Click the world | Capture mouse for looking |
 | Esc | Release mouse |
 | R or Restart button | Restart the level |
+| N (after a win) | Next level |
 
-Cross the broken floor and reach the green exit. Falling ends the run.
+Level 1: jump the broken floor. Level 2: ride the moving platform across the chasm.
+Open a level directly with `?level=2`. Falling ends the run.
 Keyboard controls work without mouse capture. A desktop browser with WebGL
 and a keyboard is required; touch controls are not implemented.
 
@@ -48,6 +50,7 @@ pnpm --filter @umbra/engine typecheck
 pnpm --filter @umbra/agents typecheck
 pnpm --filter @umbra/lantern typecheck
 pnpm --filter @umbra/engine determinism-check
+pnpm lint                                        # determinism rules on engine sim code
 pnpm --filter @umbra/engine validate-scenes
 pnpm --filter @umbra/engine exec playwright install chromium   # once
 pnpm --filter @umbra/engine browser-hash-check
@@ -108,11 +111,15 @@ proposals, not proof a player can complete a jump.
 | `benchmark` | Seed scenes and mutation stub |
 | `.kiro` | Specs, steering, and hooks |
 
-Lantern's level is `games/lantern/src/level.json`. The headless test proves a
+Lantern's levels are `games/lantern/src/level.json` and `level-2.json`. The headless test proves a
 specific input sequence can win it. The older benchmark scene is separate and
 is schema-checked, not claimed to be playable.
 
-Ramps and stairs currently behave as cubes; moving platforms do not move yet.
+Ramps and stairs currently behave as cubes. Moving platforms shuttle along one
+axis (`props: { axis, distance, speed }`, validated by the scene schema) on a
+tick-based path and carry the player standing on them. The carry is not
+collision-checked, so keep walls off platform paths. Navmesh bakes exclude
+platforms, and `searchReach` does not wait for them.
 All goal kinds currently behave as collectable sensors, and reaching every goal
 wins. Keys, doors, and hazards do not yet have separate rules. The seed argument
 is retained for replays but the simulation currently has no random systems.

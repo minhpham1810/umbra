@@ -18,6 +18,13 @@ export const GridPosSchema = z.object({
   z: z.number().int(),
 });
 
+/** A moving platform shuttles `distance` cells along `axis` and back, at `speed` m/s. */
+export const MovingPlatformPropsSchema = z.object({
+  axis: z.enum(["x", "y", "z"]).default("x"),
+  distance: z.number().int().min(1).max(32).default(2),
+  speed: z.number().positive().max(10).default(1),
+});
+
 export const KitPieceSchema = z.object({
   kind: KitPieceKindSchema,
   pos: GridPosSchema,
@@ -25,6 +32,10 @@ export const KitPieceSchema = z.object({
   rot: z.number().int().min(0).max(3).default(0),
   /** Optional per-piece properties (e.g. platform speed). */
   props: z.record(z.string(), z.unknown()).optional(),
+}).superRefine((piece, ctx) => {
+  if (piece.kind !== "moving_platform") return;
+  const result = MovingPlatformPropsSchema.safeParse(piece.props ?? {});
+  for (const issue of result.error?.issues ?? []) ctx.addIssue({ ...issue, path: ["props", ...issue.path] });
 });
 
 export const SpawnSchema = z.object({

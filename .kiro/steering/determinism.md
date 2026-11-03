@@ -14,10 +14,11 @@ These are hard constraints. Breaking any one of them can cause replays to diverg
 
 6. **Integer game logic.** Health, keys, timers, counters — all integers in ECS. Only positions and velocities live in Rapier.
 
-## ESLint enforcement (TODO: wire up)
+## ESLint enforcement
 
-`src/sim/` and `src/physics/` ban:
-- `Math.random`, `Math.sin`, `Math.cos`, `Math.tan`, `Date`, `performance`
-- Unsorted iteration over `Map` or `Set` without an explicit sort
+`pnpm lint` (root `eslint.config.mjs`) bans these in `packages/engine/src/{sim,physics,hash,ecs,input}`:
+- `Math.random`, `Math.sin`, `Math.cos`, `Math.tan`, `Math.atan2`, `Math.exp`, `Math.log`, `Math.pow` and friends (results differ between JS engines)
+- `Date`, `performance`
 
-These rules are in `.eslintrc.determinism.js` (TODO).
+The yaw LUT is built from + − × ÷ only, so it is bit-identical in every engine.
+Unsorted `Map`/`Set` iteration is not linted; sort before iterating. Do not sort with `localeCompare`.

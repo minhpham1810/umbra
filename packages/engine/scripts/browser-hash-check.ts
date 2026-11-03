@@ -26,10 +26,8 @@ function inputs(seed: number): InputFrame[] {
   return Array.from({ length: TICKS }, () => ({ buttons: next() & 31, yaw: next() & 255 }));
 }
 
-const scenes: [string, Scene][] = [
-  ["lantern/level.json", SceneSchema.parse(JSON.parse(readFileSync(join(REPO_ROOT, "games/lantern/src/level.json"), "utf8")))],
-];
-for (const dir of ["benchmark/levels/clean", "benchmark/levels/mutated"].map((d) => join(REPO_ROOT, d)).filter(existsSync)) {
+const scenes: [string, Scene][] = [];
+for (const dir of ["games/lantern/src", "benchmark/levels/clean", "benchmark/levels/mutated"].map((d) => join(REPO_ROOT, d)).filter(existsSync)) {
   for (const f of readdirSync(dir).filter((f) => f.endsWith(".json"))) {
     scenes.push([f, SceneSchema.parse(JSON.parse(readFileSync(join(dir, f), "utf8")))]);
   }
