@@ -9,6 +9,21 @@
  */
 import { z } from "zod";
 
+export const BUILD_KINDS = ["ghost", "trap"] as const;
+export type BuildKind = (typeof BUILD_KINDS)[number];
+/** cost: coins; range: Chebyshev cells (0 = its own cell); scare: fear added; cooldown: ticks. */
+export const CATALOG: Record<BuildKind, { cost: number; range: number; scare: number; cooldown: number }> = {
+  // Balanced with searchStrategy: at trap cooldown 180 and ghost cost 30, all-trap plans
+  // beat every plan with a ghost (220 vs 177 scares). Now single-kind plans peak near 114
+  // and mixed plans reach about 160.
+  ghost: { cost: 25, range: 2, scare: 1, cooldown: 30 },
+  trap: { cost: 20, range: 0, scare: 2, cooldown: 360 },
+};
+const BuildStatsSchema = z.object({
+  cost: z.number().int().min(0).max(10_000), range: z.number().int().min(0).max(8),
+  scare: z.number().int().min(0).max(100), cooldown: z.number().int().min(1).max(36_000),
+}).partial();
+
 export const MansionSchema = z.object({
   version: z.number().int().default(1),
   name: z.string().default("Mansion"),
@@ -23,6 +38,8 @@ export const MansionSchema = z.object({
   /** Entry fee per admitted visitor, in coins. */
   fee: z.number().int().min(0).max(1000).default(5),
   seed: z.number().int().min(0).max(2 ** 32 - 1).default(1),
+  /** Per-mansion overrides of CATALOG build stats (used by balance mutations). */
+  catalog: z.object({ ghost: BuildStatsSchema, trap: BuildStatsSchema }).partial().optional(),
 }).superRefine((m, ctx) => {
   if (m.tiles.some((r) => r.length !== m.tiles[0]!.length)) ctx.addIssue({ code: "custom", message: "all rows must have the same length", path: ["tiles"] });
   const count = (c: string) => m.tiles.join("").split(c).length - 1;
@@ -31,13 +48,6 @@ export const MansionSchema = z.object({
 });
 export type Mansion = z.infer<typeof MansionSchema>;
 
-export const BUILD_KINDS = ["ghost", "trap"] as const;
-export type BuildKind = (typeof BUILD_KINDS)[number];
-/** cost: coins; range: Chebyshev cells (0 = its own cell); scare: fear added; cooldown: ticks. */
-export const CATALOG: Record<BuildKind, { cost: number; range: number; scare: number; cooldown: number }> = {
-  ghost: { cost: 30, range: 2, scare: 1, cooldown: 30 },
-  trap: { cost: 20, range: 0, scare: 2, cooldown: 180 },
-};
 export const PlacementSchema = z.object({
   kind: z.enum(BUILD_KINDS), x: z.number().int().min(0), y: z.number().int().min(0),
   /** Tick the build appears; placements are applied in (tick, list) order. */
@@ -95,6 +105,7 @@ export function createMansion(raw: Mansion) {
     return d;
   }
   const toExit = field(exit), toEntrance = field(entrance);
+  const catalog = buildCatalog(m);
   if (toExit[entrance.y * W + entrance.x] === -1) throw new Error("the exit is not reachable from the entrance");
 
   let rng = m.seed >>> 0;
@@ -111,7 +122,7 @@ export function createMansion(raw: Mansion) {
   const occupied = (x: number, y: number) => visitors.some((v) => v.x === x && v.y === y);
 
   function place(p: Placement): string | undefined {
-    const c = CATALOG[p.kind];
+    const c = catalog[p.kind];
     if (at(p.x, p.y) !== ".") return "builds go on floor tiles";
     if (builds.some((b) => b.x === p.x && b.y === p.y)) return "cell already has a build";
     if (spent + c.cost > m.budget) return `not enough coins (${m.budget - spent} left, costs ${c.cost})`;
@@ -179,7 +190,7 @@ export function createMansion(raw: Mansion) {
     // 4. ghosts scare the nearest visitor in range (lowest id breaks ties)
     for (const b of builds) {
       if (b.kind !== "ghost" || b.ready > tick) continue;
-      const c = CATALOG.ghost;
+      const c = catalog.ghost;
       const target = visitors.filter((v) => !v.fleeing && Math.max(Math.abs(v.x - b.x), Math.abs(v.y - b.y)) <= c.range)[0];
       if (target) scare(target, b);
     }
@@ -198,7 +209,7 @@ export function createMansion(raw: Mansion) {
   }
 
   function scare(v: Visitor, b: Build) {
-    const c = CATALOG[b.kind];
+    const c = catalog[b.kind];
     v.fear += c.scare;
     scares += c.scare;
     b.ready = tick + c.cooldown;
@@ -209,7 +220,7 @@ export function createMansion(raw: Mansion) {
   const deadlocked = () => visitors.filter((v) => v.wait * (v.fleeing ? FLEE_EVERY : WALK_EVERY) >= STUCK_TICKS).length;
 
   return {
-    mansion: m, width: W, height: H, entrance, exit,
+    mansion: m, width: W, height: H, entrance, exit, catalog,
     /** Queue a build; it is checked (tile, cell, coins) when its tick comes. */
     place(p: PlacementInput) { pending.push(PlacementSchema.parse(p)); },
     step,
@@ -225,6 +236,15 @@ export function createMansion(raw: Mansion) {
         spent, admitted, exited, fled, deadlocked: deadlocked(), events: [...events], finalStateHash: tickHashes.at(-1) ?? 0 };
     },
   };
+}
+
+/** Build stats for a mansion: CATALOG with the mansion's overrides applied. */
+export function buildCatalog(m: Mansion): typeof CATALOG {
+  const merge = (kind: BuildKind) => {
+    const base = CATALOG[kind], o = m.catalog?.[kind];
+    return { cost: o?.cost ?? base.cost, range: o?.range ?? base.range, scare: o?.scare ?? base.scare, cooldown: o?.cooldown ?? base.cooldown };
+  };
+  return { ghost: merge("ghost"), trap: merge("trap") };
 }
 
 /** Run a whole mansion day headlessly with a build plan. */

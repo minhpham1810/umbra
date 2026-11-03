@@ -15,7 +15,7 @@
     "######################"
   ],
   "budget": 150,
-  "quota": 125,
+  "quota": 140,
   "durationTicks": 10800,
   "spawnEvery": 150,
   "maxVisitors": 40,

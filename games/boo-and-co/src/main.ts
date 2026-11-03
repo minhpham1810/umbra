@@ -5,10 +5,11 @@
  */
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { CATALOG, MansionSchema, createMansion, type BuildKind } from "@umbra/engine";
+import { MansionSchema, buildCatalog, createMansion, type BuildKind } from "@umbra/engine";
 import rawMansion from "./mansion.json";
 
 const mansion = MansionSchema.parse(rawMansion);
+const CATALOG = buildCatalog(mansion); // build stats with this mansion's overrides
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const canvas = document.querySelector("canvas")!;
 const TICKS_PER_SECOND = 60;
@@ -125,11 +126,14 @@ canvas.addEventListener("pointerup", (e) => {
   if (paused) sim.step(); // apply it now so the build shows while paused
 });
 for (const kind of ["ghost", "trap"] as const) {
+  $(`tool-${kind}`).textContent = `${kind === "ghost" ? "Ghost" : "Trap"} · ${CATALOG[kind].cost}`;
   $(`tool-${kind}`).addEventListener("click", () => {
     tool = kind;
     $("tool-ghost").setAttribute("aria-pressed", String(kind === "ghost"));
     $("tool-trap").setAttribute("aria-pressed", String(kind === "trap"));
-    hint(kind === "ghost" ? "Ghosts scare one visitor within 2 tiles, every half second." : "Traps scare whoever steps on them (double scare), every 3 seconds.");
+    const c = CATALOG[kind];
+    hint(kind === "ghost" ? `Ghosts scare one visitor within ${c.range} tiles, every ${c.cooldown / 60} s.`
+      : `Traps give a ${c.scare}× scare to whoever steps on them, every ${c.cooldown / 60} s.`);
   });
 }
 $("pause").addEventListener("click", () => { paused = !paused; $("pause").textContent = paused ? "Resume" : "Pause"; });
