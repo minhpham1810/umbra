@@ -13,7 +13,7 @@ A typed Node API (also served as an MCP server) that lets agents — and Kiro �
 | `sim.observe` | `(scene, seed, inputs[], atTick) → Observation` | ✅ implemented |
 | `nav.bake` | `(scene) → {navmeshId, islands[]}` | ✅ implemented |
 | `nav.path` | `(navmeshId, from, to) → {found, waypoints[]}` | ✅ implemented |
-| `search.reach` | `(scene, goal, budget) → {reached, inputs[], attempts}` | ✅ implemented (budget = max sim runs; single jump per run) |
+| `search.reach` | `(scene, goal, budget) → {reached, inputs[], attempts}` | ✅ implemented (budget = max sim runs; edge jumps cross multiple gaps) |
 | `search.strategy` | `(mansionScene, budget) → strategy` | not started |
 | `replay.save` | `(scene, seed, inputs[]) → replayId` | ✅ implemented |
 

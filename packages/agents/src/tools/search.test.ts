@@ -36,3 +36,16 @@ it("observes the player after walking forward", async () => {
 it("rejects an unknown goal", async () => {
   await expect(searchReach(lantern, "nope", 10)).rejects.toThrow("Unknown goal");
 });
+
+it("proves routes that need two separate jumps", async () => {
+  const { compileBlueprint } = await import("../builder.js");
+  const base = { name: "t", floors: [{ x0: -1, z0: 0, x1: 1, z1: 14 }], spawn: { x: 0, z: 1 }, exit: { x: 0, z: 13 } };
+  // A 5-cell gap with a stepping stone in the middle, and two 2-cell gaps.
+  const stone = compileBlueprint({ ...base, pits: [{ x0: -1, z0: 4, x1: 1, z1: 5 }, { x0: -1, z0: 7, x1: 1, z1: 8 }] });
+  const twoGaps = compileBlueprint({ ...base, pits: [{ x0: -1, z0: 3, x1: 1, z1: 4 }, { x0: -1, z0: 9, x1: 1, z1: 10 }] });
+  for (const scene of [stone, twoGaps]) {
+    const r = await searchReach(scene, "exit", 50);
+    expect(r.reached).toBe(true);
+    expect((await runSim({ scene, seed: 0, inputs: r.inputs, maxTicks: r.inputs.length })).outcome).toBe("win");
+  }
+}, 120_000);

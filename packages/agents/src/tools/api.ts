@@ -152,11 +152,12 @@ async function navRouteTo(scene: Scene, from: Point, to: Point): Promise<Point[]
 /**
  * Navmesh + physics search toward a point. `budget` is the maximum number of sim runs.
  * Follows the navmesh route to `approach` (or a straight line when there is none), then
- * heads for `target`, with closed-loop steering; attempt 0 never jumps, 1 holds jump,
- * then each moving platform gets one ride attempt, then single jumps at tick 2·k.
+ * heads for `target`, with closed-loop steering. Attempts, in order: never jump; hold
+ * jump; edge jumps (jump whenever the ground `L` m ahead drops away or rises one block,
+ * for a few `L`, which crosses any number of gaps); one ride per moving platform;
+ * then single jumps at tick 2·k.
  * A run stops as soon as `hit` is true or it ends.
- * shortcut: one jump per attempt, so routes needing two separate jumps are missed;
- * upgrade to the edge-launch jump search in the Playtester spec when levels need it.
+ * shortcut: edge jumps are not combined with platform rides.
  * shortcut: platforms are boarded only at their start cell and ridden once along x or z.
  * A hit counts only if a fresh runSim of the recorded inputs reproduces it.
  */
@@ -167,10 +168,19 @@ export async function searchTarget(scene: Scene, approach: Point, target: Point,
   const route = await navRouteTo(scene, foot, approach);
   const navRoute = route !== undefined;
   const direct = [...(route ?? [approach]), ...(target !== approach ? [target] : [])];
-  const programs: { steps: Step[]; jump: "never" | "hold" | number }[] = [
+  const programs: { steps: Step[]; jump: "never" | "hold" | { edge: number } | number }[] = [
     { steps: direct.map((go) => ({ go })), jump: "never" },
     { steps: direct.map((go) => ({ go })), jump: "hold" },
+    ...[0.35, 0.6, 0.85].map((edge) => ({ steps: direct.map((go) => ({ go })), jump: { edge } })),
   ];
+  // Walking surface height per column (top of its highest solid block).
+  const ground = new Map<string, number>();
+  for (const p of scene.pieces) {
+    if (p.kind === "pit" || p.kind === "moving_platform") continue;
+    const k = `${p.pos.x},${p.pos.z}`;
+    ground.set(k, Math.max(ground.get(k) ?? -Infinity, p.pos.y + 1));
+  }
+  const groundAt = (x: number, z: number) => ground.get(`${Math.floor(x)},${Math.floor(z)}`);
   const platforms = scene.pieces.filter((p) => p.kind === "moving_platform")
     .sort((a, b) => a.pos.x - b.pos.x || a.pos.y - b.pos.y || a.pos.z - b.pos.z);
   for (const [i, piece] of platforms.entries()) {
@@ -222,6 +232,14 @@ export async function searchTarget(scene: Scene, approach: Point, target: Point,
         }
         const t = inputs.length;
         if (program.jump === "hold" || program.jump === t) buttons |= BUTTON.JUMP;
+        if (typeof program.jump === "object" && "go" in step && buttons && sim.grounded) {
+          const d = Math.hypot(step.go.x - pos.x, step.go.z - pos.z) || 1;
+          const L = program.jump.edge;
+          const ahead = groundAt(pos.x + ((step.go.x - pos.x) / d) * L, pos.z + ((step.go.z - pos.z) / d) * L);
+          const feet = pos.y - CAPSULE_HALF_HEIGHT;
+          // Jump over a drop or up a one-block step; a two-block rise is a wall.
+          if (ahead === undefined || ahead < feet - 0.5 || (ahead > feet + 0.5 && ahead < feet + 1.5)) buttons |= BUTTON.JUMP;
+        }
         const frame = { buttons, yaw };
         inputs.push(frame);
         sim.step(frame);
