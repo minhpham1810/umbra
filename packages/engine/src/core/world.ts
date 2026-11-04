@@ -13,15 +13,19 @@ import { createRng, type Rng } from "./rng.js";
 
 export type Entity = number;
 
-/** A component type. Call it with a value to get an entry for `world.spawn`. */
-// The `any` default lets registries hold component types of any value type (they are invariant).
-export interface ComponentType<T = any> {
-  (value: T): ComponentEntry<T>;
+/**
+ * A component type. Call it with a value to get an entry for `world.spawn`. `T` is the
+ * stored value (the schema's output); `In` is what callers pass (its input, so fields with
+ * schema defaults may be left out).
+ */
+// The `any` defaults let registries hold component types of any value type (they are invariant).
+export interface ComponentType<T = any, In = T> {
+  (value: In): ComponentEntry;
   readonly kind: "component";
   readonly name: string;
   readonly schema: z.ZodType<T, z.ZodTypeDef, unknown>;
 }
-export interface ComponentEntry<T = any> { readonly type: ComponentType<T>; readonly value: T }
+export interface ComponentEntry { readonly type: ComponentType; readonly value: unknown }
 
 export interface ResourceType<T = unknown> {
   readonly kind: "resource";
@@ -43,9 +47,9 @@ const checkName = (what: string, name: string) => {
 };
 
 /** Define a component: a named piece of entity data, validated by `schema`. */
-export function defineComponent<T>(name: string, schema: z.ZodType<T, z.ZodTypeDef, unknown>): ComponentType<T> {
+export function defineComponent<S extends z.ZodTypeAny>(name: string, schema: S): ComponentType<z.output<S>, z.input<S>> {
   checkName("component", name);
-  const type = ((value: T) => ({ type, value })) as ComponentType<T>;
+  const type = ((value: z.input<S>) => ({ type, value })) as ComponentType<z.output<S>, z.input<S>>;
   Object.defineProperties(type, {
     kind: { value: "component" }, name: { value: name }, schema: { value: schema },
   });
@@ -67,7 +71,7 @@ export function defineEvent<T>(name: string, schema: z.ZodType<T, z.ZodTypeDef, 
 /** An event as recorded: which tick, which type, and its data. */
 export interface EmittedEvent { tick: number; type: string; data: unknown }
 
-type Values<Ts extends readonly ComponentType[]> = { [K in keyof Ts]: Ts[K] extends ComponentType<infer T> ? T : never };
+type Values<Ts extends readonly ComponentType[]> = { [K in keyof Ts]: Ts[K] extends ComponentType<infer T, infer _In> ? T : never };
 
 /** Plain-data copy of a world's state, for snapshot/restore and checkpoints. */
 export interface WorldState {
@@ -151,13 +155,13 @@ export class World {
   // ── components ────────────────────────────────────────────────────────────
 
   /** Add or replace a component (validated by its schema). */
-  set<T>(e: Entity, c: ComponentType<T>, value: T): void {
+  set<T, In>(e: Entity, c: ComponentType<T, In>, value: In): void {
     if (!this.alive.has(e)) throw new Error(`entity ${e} does not exist`);
     this.store(c).set(e, c.schema.parse(value));
   }
 
   /** The stored value (mutable in place), or undefined. */
-  get<T>(e: Entity, c: ComponentType<T>): T | undefined { return this.store(c).get(e) as T | undefined; }
+  get<T, In>(e: Entity, c: ComponentType<T, In>): T | undefined { return this.store(c).get(e) as T | undefined; }
 
   has(e: Entity, c: ComponentType): boolean { return this.store(c).has(e); }
 

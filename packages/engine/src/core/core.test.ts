@@ -207,3 +207,12 @@ describe("scenes", () => {
     expect(w.entities()).toEqual([]);
   });
 });
+
+it("lets the outcome read the tick's events", async () => {
+  const Rang = defineEvent("rang", z.null());
+  const bell = defineGame({ name: "bell", input: z.boolean(), events: [Rang],
+    systems: [function ring(w, on) { if (on) w.emit(Rang, null); }],
+    outcome: (w) => (w.events(Rang).length ? "rang" : undefined) });
+  const r = await runGame(bell, null, { inputs: [false, false, true, false] });
+  expect([r.outcome, r.ticks, r.events.length]).toEqual(["rang", 3, 1]);
+});

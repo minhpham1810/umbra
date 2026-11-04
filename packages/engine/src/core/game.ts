@@ -58,7 +58,7 @@ export interface GameDefinition<I, L> {
   /** Build the starting world from the level. */
   setup?(world: World, level: L): void;
   systems?: readonly SystemLike<I, L>[];
-  /** After each tick: a result ("win", "lose", …) ends the run; undefined keeps going. */
+  /** After each tick (it can read that tick's events): a result ("win", "lose", …) ends the run; undefined keeps going. */
   outcome?(world: World, level: L): string | undefined;
 }
 
@@ -140,9 +140,9 @@ export async function createGame<I, L>(game: Game<I, L>, rawLevel: unknown, opts
       if (outcome !== undefined) return [];
       const input = game.input.parse(raw);
       for (const s of ordered) s.run(world, input, level);
-      const events = world.takeEvents();
       world.tick++;
-      outcome = game.outcome?.(world, level);
+      outcome = game.outcome?.(world, level); // may read this tick's events with world.events()
+      const events = world.takeEvents();
       hash = hashNow();
       return events;
     },

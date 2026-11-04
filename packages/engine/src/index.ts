@@ -2,6 +2,8 @@
 export * from "./core/index.js";
 // Zod, re-exported so component and input schemas use the same Zod as the engine.
 export { z } from "zod";
+// Optional modules on the core.
+export * from "./physics3d/index.js";
 // The kit-scene platformer runtime (to be rebuilt on the core as optional modules).
 export * from "./input/types.js";
 export * from "./scene/schema.js";
