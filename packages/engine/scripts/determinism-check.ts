@@ -6,7 +6,8 @@
  * inputs, then assert the tickHashes arrays are identical.
  *
  * Then replay every saved replay (Studio samples, benchmark solutions) twice and assert
- * both runs end on the hash stored in the file.
+ * both runs end on the hash stored in the file: kit-scene replays with runSim, and
+ * umbra-replay files with verifyReplay and the game they name.
  *
  * Run:  pnpm tsx scripts/determinism-check.ts
  * CI:   pnpm --filter umbra-engine determinism-check
@@ -18,6 +19,13 @@ import { runSim } from "../src/sim/runner.js";
 import { validateScene } from "../src/scene/schema.js";
 import { IDLE_FRAME } from "../src/input/types.js";
 import type { Replay } from "../src/replay/types.js";
+import { verifyReplay, type Game } from "../src/core/game.js";
+import { snake } from "../examples/snake/snake.js";
+import { collect } from "../examples/collect/collect.js";
+import { room } from "../examples/room/room.js";
+
+/** Games whose umbra-replay files may be saved in the replay dirs. */
+const GAMES: Game<any, any>[] = [snake, collect, room];
 
 const REPO_ROOT = resolve(import.meta.dirname, "../../..");
 const DIRS = [
@@ -61,6 +69,14 @@ const REPLAY_DIRS = ["apps/studio/public/replays", "apps/studio/public/fixes", "
 for (const dir of REPLAY_DIRS) {
   for (const file of readdirSync(dir).filter((f) => f.endsWith(".json") && f !== "index.json")) {
     const raw = JSON.parse(readFileSync(join(dir, file), "utf8"));
+    if (raw.format === "umbra-replay") {
+      const game = GAMES.find((g) => g.name === raw.game);
+      if (!game) { console.error(`UNKNOWN  ${file}: no game "${raw.game}" in determinism-check's GAMES`); failed++; continue; }
+      const [a, b] = [await verifyReplay(game, raw), await verifyReplay(game, raw)];
+      if (a.ok && b.ok) { console.log(`OK       ${file}  ${a.reason}`); passed++; }
+      else { console.error(`DIVERGED ${file}: ${a.reason} / ${b.reason}`); failed++; }
+      continue;
+    }
     // A Fixer evidence file holds a before and an after replay.
     const replays: [string, Replay][] = raw.kind === "umbra-fix" ? [[`${file} before`, raw.before], [`${file} after`, raw.after]] : [[file, raw]];
     for (const [name, replay] of replays) {
