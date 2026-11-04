@@ -109,7 +109,7 @@ run.dispose();
 Shapes are `box`, `circle`, `capsule`, `convex` (the hull of some points) and `polyline`.
 `Velocity2D`, `Character2D`/`CharacterMove2D`/`CharacterState2D` and `Contact2D` work like
 their 3D versions, and `physics2dOf(world)` gives impulses and ray casts. A complete
-platformer is [`examples/hop`](../packages/engine/examples/hop).
+platformer is [`examples/hop`](https://github.com/minhpham1810/umbra/tree/main/packages/engine/examples/hop).
 
 Use `rotationZ(angle)` and `angleZ(rotation)` for 2D angles in simulation code: they give
 the same bits on every JavaScript engine, unlike `Math.sin` and `Math.atan2`

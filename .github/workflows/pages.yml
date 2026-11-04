@@ -1,0 +1,53 @@
+name: Docs site
+
+# The guides (VitePress), the playground and Studio, served together on GitHub Pages:
+# https://minhpham1810.github.io/umbra/  (/playground/ and /studio/ beside the docs)
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # "last updated" dates come from git history
+      - uses: pnpm/action-setup@v4
+        with:
+          version: "12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm docs:build
+      - run: pnpm --filter @umbra/playground exec vite build --base /umbra/playground/
+      - run: pnpm --filter @umbra/studio exec vite build --base /umbra/studio/
+      - name: Assemble the site
+        run: |
+          cp -r apps/playground/dist docs/.vitepress/dist/playground
+          cp -r apps/studio/dist docs/.vitepress/dist/studio
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/.vitepress/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

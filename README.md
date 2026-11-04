@@ -8,6 +8,10 @@
 reproducible tick for tick, in Node and in the browser, so agents can build levels,
 play them headlessly and report each bug with a replay that proves it.
 
+**Docs site: [minhpham1810.github.io/umbra](https://minhpham1810.github.io/umbra/)**, with the
+[playground](https://minhpham1810.github.io/umbra/playground/) and
+[Studio](https://minhpham1810.github.io/umbra/studio/) live in your browser.
+
 New here? Start with the [guides](docs/README.md): [getting started](docs/getting-started.md),
 [the browser](docs/browser.md), [physics](docs/physics.md), [agents](docs/agents.md) and
 [determinism](docs/determinism.md). Every code example in them runs in the test suite.

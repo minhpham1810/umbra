@@ -2,13 +2,16 @@
   "name": "umbra",
   "private": true,
   "version": "0.0.1",
-  "description": "TypeScript 3D game engine for AI agents — deterministic, headless, replayable.",
+  "description": "TypeScript 2D and 3D game engine for AI agents: deterministic, headless, replayable.",
   "scripts": {
     "dev": "pnpm --recursive run dev",
     "build": "pnpm --recursive run build",
     "test": "pnpm --recursive run test",
     "lint": "eslint . --max-warnings 0",
-    "typecheck": "pnpm --recursive run typecheck"
+    "typecheck": "pnpm --recursive run typecheck",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
   },
   "engines": {
     "node": ">=20",
@@ -16,6 +19,7 @@
   },
   "devDependencies": {
     "eslint": "9.39.5",
-    "typescript-eslint": "8.72.1"
+    "typescript-eslint": "8.72.1",
+    "vitepress": "1.6.4"
   }
 }

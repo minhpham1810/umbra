@@ -117,6 +117,6 @@ resumes as soon as it is allowed.
 
 ## The playground
 
-[`apps/playground`](../apps/playground) wires all of this up for the engine's examples:
+[the playground](https://minhpham1810.github.io/umbra/playground/) ([source](https://github.com/minhpham1810/umbra/tree/main/apps/playground)) wires all of this up for the engine's examples:
 `pnpm --filter @umbra/playground dev`, then the room (3D), `?game=collect` (2D, with sound)
 and `?game=hop` (2D physics). Press P to print the session's replay.

@@ -122,13 +122,13 @@ npx umbra-mcp --games ./agent-games.js
 
 Levels and inputs are checked by each game's own schemas; a string level names one of the
 game's `levels`. In code, `createServer({ games })` returns the server.
-[`packages/agents/examples/games.ts`](../packages/agents/examples/games.ts) sets up the
+[`packages/agents/examples/games.ts`](https://github.com/minhpham1810/umbra/blob/main/packages/agents/examples/games.ts) sets up the
 engine's examples, and `pnpm --filter umbra-agents mcp --games examples/games.ts` serves
 them in this repository.
 
 ## Studio
 
-[Studio](../apps/studio) opens replay files (`recordReplay`, `loop.replay()`, the
+[Studio](https://minhpham1810.github.io/umbra/studio/) opens replay files (`recordReplay`, `loop.replay()`, the
 playtester's `reached` replays), re-runs them, checks the hash and plays them back with a
 scrubber, the event list and the game's resources at each tick. Add your game to
-[`apps/studio/src/games.ts`](../apps/studio/src/games.ts) to view its replays.
+[`apps/studio/src/games.ts`](https://github.com/minhpham1810/umbra/blob/main/apps/studio/src/games.ts) to view its replays.

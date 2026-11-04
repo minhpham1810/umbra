@@ -43,7 +43,7 @@ replay that no longer reproduces.
 - **Lint.** `pnpm lint` bans `Math.random`, `Math.sin` and friends, `Date` and `performance`
   in the engine's simulation code (`core`, `physics2d`, `physics3d`, `spatial`, and the
   kit-scene runtime) and in Boo & Co.'s simulation. Add your own game's simulation folder to
-  the same rule in [`eslint.config.mjs`](../eslint.config.mjs).
+  the same rule in [`eslint.config.mjs`](https://github.com/minhpham1810/umbra/blob/main/eslint.config.mjs).
 - **Property tests.** Random input sequences run twice must give identical hashes.
 - **Saved replays.** `pnpm --filter umbra-engine determinism-check` re-runs every saved
   replay twice and compares against its stored hash.
