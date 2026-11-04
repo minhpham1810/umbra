@@ -7,3 +7,5 @@ coverage/
 /replays/
 *.tgz
 packages/agents/.docs-tmp/
+docs/.vitepress/dist/
+docs/.vitepress/cache/

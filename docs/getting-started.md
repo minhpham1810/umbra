@@ -135,7 +135,7 @@ console.log(JSON.stringify(replay).length < 500, (await verifyReplay(coin, repla
 ```
 
 Bump the game's `version` when a change alters runs; `verifyReplay` then tells a stale
-replay apart from a broken one. [Studio](../apps/studio) plays replays back with a scrubber.
+replay apart from a broken one. [Studio](https://minhpham1810.github.io/umbra/studio/) plays replays back with a scrubber.
 
 ## Scene files
 
@@ -166,4 +166,4 @@ console.log(world.get(1, Pos), saveScene(world).entities.length); // { x: 3, y: 
 - [Physics](physics.md): 3D and 2D bodies, characters, sensors, navigation.
 - [Agents](agents.md): search, playtesting and MCP tools for your game.
 - [Determinism](determinism.md): the rules that keep replays exact, and how to debug a divergence.
-- [Examples](../packages/engine/examples): snake, collect, room and hop, each with tests.
+- [Examples](https://github.com/minhpham1810/umbra/tree/main/packages/engine/examples): snake, collect, room and hop, each with tests.
