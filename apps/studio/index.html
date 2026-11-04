@@ -32,6 +32,8 @@
     #events button { width: 100%; text-align: left; padding: 6px 10px; margin-bottom: 4px; font-size: 13px; }
     main { position: relative; min-width: 0; }
     canvas { display: block; width: 100%; height: 100%; }
+    canvas[hidden] { display: none; }
+    #state { white-space: pre-wrap; word-break: break-all; font: 12px ui-monospace, monospace; max-height: 30vh; overflow: auto; }
     #info { position: absolute; top: 16px; left: 16px; right: 16px; pointer-events: none; }
     #title { margin: 0; font-size: 18px; text-shadow: 0 1px 3px #000; }
     #note { margin: 4px 0 8px; max-width: 70ch; color: var(--muted); text-shadow: 0 1px 3px #000; }
@@ -67,11 +69,14 @@
       <p id="fix-reason" class="sub"></p>
       <ul id="edits"></ul>
     </section>
+    <h2>State</h2>
+    <pre id="state" class="sub"></pre>
     <h2>Events</h2>
     <ul id="events"><li class="sub">No events.</li></ul>
   </aside>
   <main>
-    <canvas aria-label="3D replay view. Drag to orbit, scroll to zoom."></canvas>
+    <canvas id="canvas3d" aria-label="3D replay view. Drag to orbit, scroll to zoom."></canvas>
+    <canvas id="canvas2d" hidden aria-label="2D replay view."></canvas>
     <div id="info"><h2 id="title" style="color:var(--text);text-transform:none;letter-spacing:0">Loading…</h2>
       <p id="note"></p><span id="verify" class="badge" role="status"></span></div>
     <div id="bar">
@@ -82,7 +87,7 @@
         <option value="0.25">0.25×</option><option value="0.5">0.5×</option><option value="1" selected>1×</option>
         <option value="2">2×</option><option value="4">4×</option>
       </select>
-      <label><input id="follow" type="checkbox" checked /> Follow</label>
+      <label title="Follow the player, or use the game's own camera"><input id="follow" type="checkbox" checked /> Follow</label>
     </div>
     <div id="drop">Drop a replay JSON to load it</div>
   </main>

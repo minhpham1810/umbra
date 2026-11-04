@@ -370,8 +370,15 @@ pnpm --filter @umbra/studio dev
 ```
 
 Studio re-simulates a replay with the real engine, checks its final state hash against
-the saved one (a green badge means it reproduced exactly), and plays it back in 3D with
-an orbit camera, a path trail, a scrubber and a clickable event list.
+the saved one (a green badge means it reproduced exactly), and plays it back with a
+scrubber, a clickable event list and the game's resources at each tick.
+
+`umbra-replay` files (from `recordReplay`, `loop.replay()` or `playtestGame`) play for any
+game listed in [`apps/studio/src/games.ts`](apps/studio/src/games.ts), drawn by the
+engine's own views: Three.js for games with `Mesh` components (Follow uses the game's
+camera; untick it to orbit), Canvas 2D for games with `Sprite` components. Add your game
+to that list to view its replays. Kit-scene replays (Lantern) play in 3D with an orbit
+camera and a path trail.
 
 For the Fixer's output, Studio switches between the **before** and **after** runs, lists
 the edits and outlines the changed cells (green for added, red for removed). Open a

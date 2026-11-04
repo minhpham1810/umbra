@@ -1,20 +1,25 @@
 /**
  * Studio: load a replay, re-simulate it with the real engine, check the final hash,
- * and play it back in 3D with an orbit camera, a path trail and a scrubber.
+ * and play it back with a scrubber. Two formats:
+ *  - "umbra-replay" files of any game in ./games.ts, drawn by the engine's own 3D or 2D view;
+ *  - kit-scene replays and Fixer evidence (Lantern), with an orbit camera and a path trail.
  */
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { kitSceneView, type KitView } from "umbra-engine/three";
-import { SceneSchema, createSimulation, type InputFrame, type Scene, type SimEvent } from "umbra-engine";
+import { createSceneView, kitSceneView, type KitView } from "umbra-engine/three";
+import { SceneSchema, createSimulation, createSpriteView, type InputFrame, type Scene, type SimEvent } from "umbra-engine";
+import { games } from "./games.js";
+import { recordGameReplay } from "./game-replay.js";
 
 const $ = <T extends HTMLElement>(sel: string) => document.querySelector<T>(sel)!;
-const canvas = $<HTMLCanvasElement>("canvas");
+const canvas = $<HTMLCanvasElement>("#canvas3d");
+const canvas2d = $<HTMLCanvasElement>("#canvas2d");
 const ui = {
   samples: $("#samples"), events: $("#events"), title: $("#title"), note: $("#note"), verify: $("#verify"),
   play: $<HTMLButtonElement>("#play"), scrub: $<HTMLInputElement>("#scrub"), tick: $("#tick"),
   speed: $<HTMLSelectElement>("#speed"), follow: $<HTMLInputElement>("#follow"), file: $<HTMLInputElement>("#file"),
   fix: $("#fix"), before: $<HTMLButtonElement>("#show-before"), after: $<HTMLButtonElement>("#show-after"),
-  reason: $("#fix-reason"), edits: $("#edits"),
+  reason: $("#fix-reason"), edits: $("#edits"), state: $("#state"),
 };
 const MAX_TICKS = 60 * 60 * 10;
 
@@ -132,16 +137,109 @@ function buildLevel(loaded: Loaded, edits: EditMark[]) {
     level.add(dot);
   }
   view.add(level);
-  // Frame the level from above and behind the spawn.
-  const bounds = new THREE.Box3().setFromObject(level);
+  frameObject(level);
+}
+
+// ── playback ───────────────────────────────────────────────────────────────
+
+/** A loaded run, whatever its format: what the scrubber, event list and badge need. */
+interface Shown {
+  title: string; note: string; outcome: string; verified: boolean; reason: string;
+  /** Index of the last tick. */
+  last: number;
+  events: { tick: number; label: string }[];
+  /** Draw tick `t` (0 = before the first step). */
+  show(t: number): void;
+  /** Render a frame; `follow` tracks the player, or uses the game's own camera. */
+  frame(follow: boolean): void;
+  /** Text for the state panel at tick `t`. */
+  state(t: number): string;
+  dispose(): void;
+}
+
+function kitShown(loaded: Loaded, edits: EditMark[]): Shown {
+  buildLevel(loaded, edits);
+  playerMesh.visible = true;
+  return {
+    ...loaded, last: loaded.player.length - 1,
+    events: loaded.events.map((e) => ({ tick: e.tick + 1, label: `Tick ${e.tick}: ${e.kind.replace(/_/g, " ")}${e.goalId ? ` (${e.goalId})` : ""}` })),
+    show(t) {
+      const p = loaded.player[t]!;
+      playerMesh.position.set(p.x, p.y, p.z);
+      kit?.update({ platforms: loaded.platforms[t]!, crates: loaded.crates[t]! });
+    },
+    frame(follow) {
+      const p = loaded.player[tick]!;
+      if (follow) controls.target.lerp(new THREE.Vector3(p.x, p.y, p.z), 0.2);
+      controls.update();
+      renderer.render(view, camera);
+    },
+    state(t) { const p = loaded.player[t]!; return `player ${p.x.toFixed(2)}, ${p.y.toFixed(2)}, ${p.z.toFixed(2)}`; },
+    dispose() {},
+  };
+}
+
+/** Any game's replay, drawn by the engine's own views from the recorded world states. */
+async function gameShown(title: string, raw: unknown): Promise<Shown> {
+  const rec = await recordGameReplay(games, raw, MAX_TICKS);
+  const note = typeof (raw as { note?: unknown }).note === "string" ? (raw as { note: string }).note : "";
+  const states = rec.states;
+  const show = (t: number) => rec.world.load(states[t]!);
+  const base = {
+    title: `${title} · ${rec.game}`, note, outcome: rec.outcome, verified: rec.verified, reason: rec.reason, last: states.length - 1,
+    events: rec.events.map((e) => {
+      const data = e.data === null || e.data === undefined ? "" : ` ${JSON.stringify(e.data)}`;
+      return { tick: e.tick + 1, label: `Tick ${e.tick}: ${e.type}${data.length > 48 ? data.slice(0, 47) + "…" : data}` };
+    }),
+    state: (t: number) => {
+      const s = states[t]!;
+      return JSON.stringify({ tick: s.tick, entities: s.entities.length, resources: s.resources }, null, 2).slice(0, 2000);
+    },
+  };
+  setCanvas(rec.view === "2d" ? "2d" : "3d");
+  if (rec.view === "2d") {
+    const ctx = canvas2d.getContext("2d")!;
+    const sprites = createSpriteView(rec.world, ctx, { background: "#0d1017", pixelRatio: devicePixelRatio });
+    return { ...base, show: (t) => { show(t); sprites.capture(); }, frame: () => sprites.draw(1), dispose: () => sprites.dispose() };
+  }
+  show(0);
+  const scene = createSceneView(rec.world, { background: 0x0d1017, fallbackCamera: camera });
+  // Games without lights would draw black; give them Studio's.
+  if (!states.some((s) => s.components["light"]?.length)) scene.scene.add(new THREE.HemisphereLight(0xdfe6f5, 0x2a2633, 1.6));
+  scene.sync(1);
+  frameObject(scene.scene);
+  return {
+    ...base,
+    show: (t) => { show(t); scene.capture(); },
+    frame(follow) {
+      scene.setAspect(camera.aspect);
+      scene.sync(1);
+      // Follow: the game's own active camera, when it has one; otherwise the orbit camera.
+      const cam = follow ? scene.camera : camera;
+      controls.update();
+      renderer.render(scene.scene, cam);
+    },
+    dispose: () => scene.dispose(),
+  };
+}
+
+function setCanvas(which: "2d" | "3d") {
+  canvas.hidden = which !== "3d";
+  canvas2d.hidden = which !== "2d";
+  playerMesh.visible = false;
+}
+
+/** Point the orbit camera at an object from above and behind. */
+function frameObject(o: THREE.Object3D) {
+  const bounds = new THREE.Box3().setFromObject(o);
+  if (bounds.isEmpty()) return;
   const center = bounds.getCenter(new THREE.Vector3());
-  const size = bounds.getSize(new THREE.Vector3()).length();
+  const size = Math.max(bounds.getSize(new THREE.Vector3()).length(), 4);
   controls.target.copy(center);
   camera.position.set(center.x + size * 0.45, center.y + size * 0.6, center.z - size * 0.55);
 }
 
-// ── playback ───────────────────────────────────────────────────────────────
-let current: Loaded | undefined;
+let current: Shown | undefined;
 let fix: { before: Loaded; after: Loaded; edits: EditMark[] } | undefined;
 let tick = 0;
 let playing = false;
@@ -150,17 +248,15 @@ let acc = 0;
 
 function show(t: number) {
   if (!current) return;
-  tick = Math.max(0, Math.min(t, current.player.length - 1));
-  const p = current.player[tick]!;
-  playerMesh.position.set(p.x, p.y, p.z);
-  kit?.update({ platforms: current.platforms[tick]!, crates: current.crates[tick]! });
+  tick = Math.max(0, Math.min(t, current.last));
+  current.show(tick);
   ui.scrub.value = String(tick);
-  ui.tick.textContent = `${tick} / ${current.player.length - 1}`;
-  if (ui.follow.checked) controls.target.lerp(new THREE.Vector3(p.x, p.y, p.z), 0.2);
+  ui.tick.textContent = `${tick} / ${current.last}`;
+  ui.state.textContent = current.state(tick);
 }
 
 function setPlaying(on: boolean) {
-  if (on && current && tick >= current.player.length - 1) show(0);
+  if (on && current && tick >= current.last) show(0);
   playing = on && !!current;
   ui.play.textContent = playing ? "Pause" : "Play";
   ui.play.setAttribute("aria-label", playing ? "Pause" : "Play");
@@ -169,20 +265,26 @@ function setPlaying(on: boolean) {
 async function load(title: string, raw: unknown) {
   setPlaying(false);
   ui.title.textContent = `Loading ${title}…`;
-  let loaded: Loaded;
+  let next: Shown;
   try {
     const r = raw as Record<string, unknown> | null;
-    if (r?.["kind"] === "umbra-fix") {
+    if (r?.["format"] === "umbra-replay") {
+      fix = undefined;
+      next = await gameShown(title, raw);
+    } else if (r?.["kind"] === "umbra-fix") {
       // Fix evidence: the failing run and the fixed run, both re-simulated and hash-checked.
       const edits = parseEdits(r["edits"]);
       fix = { edits, before: await simulate(`${title} · before`, r["before"]), after: await simulate(`${title} · after`, r["after"]) };
       ui.reason.textContent = typeof r["reason"] === "string" ? `Fixer: ${r["reason"].slice(0, 300)}` : "";
       ui.edits.replaceChildren(...edits.map((e) => Object.assign(document.createElement("li"),
         { className: e.op === "remove" ? "remove" : "add", textContent: `${e.op} (${e.x}, ${e.y}, ${e.z})` })));
-      loaded = fix.before;
+      setCanvas("3d");
+      next = kitShown(fix.before, edits);
     } else {
       fix = undefined;
-      loaded = await simulate(title, raw);
+      const loaded = await simulate(title, raw);
+      setCanvas("3d");
+      next = kitShown(loaded, []);
     }
   } catch (e) {
     fix = undefined;
@@ -196,29 +298,29 @@ async function load(title: string, raw: unknown) {
     return;
   }
   ui.fix.hidden = !fix;
-  present(loaded);
+  present(next);
 }
 
-function present(loaded: Loaded) {
+function present(next: Shown) {
   setPlaying(false);
-  current = loaded;
-  ui.before.setAttribute("aria-pressed", String(fix?.before === loaded));
-  ui.after.setAttribute("aria-pressed", String(fix?.after === loaded));
+  current?.dispose();
+  current = next;
+  ui.before.setAttribute("aria-pressed", String(fix?.before.title === next.title));
+  ui.after.setAttribute("aria-pressed", String(fix?.after.title === next.title));
   ui.title.textContent = `${current.title} · ${current.outcome}`;
   ui.note.textContent = current.note;
   ui.verify.textContent = current.verified ? "✓ " + current.reason : "✗ " + current.reason;
   ui.verify.className = `badge ${current.verified ? "ok" : "bad"}`;
-  ui.scrub.max = String(current.player.length - 1);
-  ui.events.replaceChildren(...(current.events.length ? current.events.map((e) => {
+  ui.scrub.max = String(current.last);
+  ui.events.replaceChildren(...(current.events.length ? current.events.slice(0, 500).map((e) => {
     const li = document.createElement("li");
     const b = document.createElement("button");
     b.type = "button";
-    b.textContent = `Tick ${e.tick}: ${e.kind.replace(/_/g, " ")}${e.goalId ? ` (${e.goalId})` : ""}`;
-    b.addEventListener("click", () => { setPlaying(false); show(e.tick + 1); });
+    b.textContent = e.label;
+    b.addEventListener("click", () => { setPlaying(false); show(e.tick); });
     li.append(b);
     return li;
   }) : [Object.assign(document.createElement("li"), { className: "sub", textContent: "No events." })]));
-  buildLevel(current, fix?.edits ?? []);
   show(0);
   setPlaying(true);
 }
@@ -232,8 +334,8 @@ async function loadUrl(title: string, url: string) {
 }
 
 ui.play.addEventListener("click", () => setPlaying(!playing));
-ui.before.addEventListener("click", () => { if (fix) present(fix.before); });
-ui.after.addEventListener("click", () => { if (fix) present(fix.after); });
+ui.before.addEventListener("click", () => { if (fix) present(kitShown(fix.before, fix.edits)); });
+ui.after.addEventListener("click", () => { if (fix) present(kitShown(fix.after, fix.edits)); });
 ui.scrub.addEventListener("input", () => { setPlaying(false); show(Number(ui.scrub.value)); });
 ui.file.addEventListener("change", async () => {
   const f = ui.file.files?.[0];
@@ -261,6 +363,8 @@ window.addEventListener("drop", async (e) => {
 function resize() {
   const { clientWidth: w, clientHeight: h } = canvas.parentElement!;
   renderer.setSize(w, h, false);
+  canvas2d.width = w * devicePixelRatio;
+  canvas2d.height = h * devicePixelRatio;
   camera.aspect = w / Math.max(h, 1);
   camera.updateProjectionMatrix();
 }
@@ -271,11 +375,10 @@ renderer.setAnimationLoop((now) => {
   if (playing && current) {
     acc += dt * 60 * Number(ui.speed.value);
     while (acc >= 1) { acc -= 1; show(tick + 1); }
-    if (tick >= current.player.length - 1) setPlaying(false);
+    if (tick >= current.last) setPlaying(false);
   } else acc = 0;
-  if (current && ui.follow.checked && !playing) show(tick);
-  controls.update();
-  renderer.render(view, camera);
+  if (current) current.frame(ui.follow.checked);
+  else { controls.update(); renderer.render(view, camera); }
 });
 
 // ── startup: ?replay=<url>, else the bundled samples ───────────────────────
