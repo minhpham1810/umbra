@@ -1,6 +1,6 @@
 {
   "name": "umbra-agents",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Agent tools for umbra-engine: Playtester, Builder, Fixer, route and balance search, and an MCP server.",
   "keywords": [
     "ai-agents",
@@ -40,7 +40,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsup src/index.ts src/mcp-stdio.ts --format esm --dts",
+    "build": "tsup src/index.ts src/mcp-stdio.ts --format esm --dts --clean",
     "dev": "tsup src/index.ts src/mcp-stdio.ts --format esm --dts --watch",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",

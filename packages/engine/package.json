@@ -1,6 +1,6 @@
 {
   "name": "umbra-engine",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Deterministic, headless 2D and 3D game engine for AI agents: Rapier physics, replayable runs, per-tick state hashes, navmesh, Canvas 2D and Three.js views.",
   "keywords": [
     "game-engine",
@@ -47,7 +47,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsup --entry.index src/index.ts --entry.three src/render3d/three.ts --entry.runtime src/runtime/index.ts --format esm --dts",
+    "build": "tsup --entry.index src/index.ts --entry.three src/render3d/three.ts --entry.runtime src/runtime/index.ts --format esm --dts --clean",
     "dev": "tsup --entry.index src/index.ts --entry.three src/render3d/three.ts --entry.runtime src/runtime/index.ts --format esm --dts --watch",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",

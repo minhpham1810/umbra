@@ -1,39 +1,8 @@
 # umbra-engine
 
-A deterministic, headless 2D and 3D game engine for AI agents. The same scene and inputs
-always give the same run, tick for tick, in Node and in the browser, so every run is a
-replay an agent can save, share and check.
-
-- **Generic core:** `defineGame` with components (Zod schemas), systems in ordered
-  phases, a game-defined input, events, resources and a seeded RNG; `runGame`,
-  checkpoints (`save` / `load`), replays (`recordReplay` / `verifyReplay`) and scene
-  files with prefabs (`spawnScene`). See the example in the repository's
-  `packages/engine/examples/snake`.
-- **3D physics plugin:** `plugins: [physics3d()]` makes rigid bodies (fixed, dynamic,
-  kinematic), colliders (box, sphere, capsule, cylinder, mesh, sensors) and a
-  collision-resolving character into components, with Contact events, impulses, ray
-  casts and `navBakeWorld`. Rapier (pinned to 0.12.0) state is hashed and checkpointed.
-  See `packages/engine/examples/room`.
-- **2D physics plugin:** `plugins: [physics2d()]` gives the same in the x/y plane (Rapier
-  2D, pinned to 0.12.0): `RigidBody2D`, `Collider2D` (box, circle, capsule, convex,
-  polyline), `Velocity2D`, `Character2D`, `Contact2D` events and `physics2dOf(world)`
-  for impulses and ray casts. `rotationZ` and `angleZ` convert 2D angles exactly on every
-  JavaScript engine. See `packages/engine/examples/hop`.
-- **Scenes as data:** JSON kit pieces on a 1 m grid (floor, wall, pit, moving platform,
-  crate, …), validated with Zod.
-- **Replays and proof:** a fixed 60 Hz step, inputs as integer frames, and a state hash
-  after every tick.
-- **Navigation:** navmesh baking and paths (recast-navigation).
-- **Rendering:** `Mesh`, `Camera` and `Light` (3D) and `Sprite` and `Camera2D` (2D)
-  presentation components (saved, never hashed). `createSceneView` from
-  `umbra-engine/three` draws 3D with glTF models via `gltfModels` (Three.js is an
-  optional peer dependency); `createSpriteView` draws 2D on a canvas. Both smooth
-  between ticks. See `packages/engine/examples/collect` for a 2D game.
-- **Models as colliders:** `gltfTriangles(bytes)` reads a .glb/.gltf's triangles
-  headlessly, for mesh colliders and navmeshes that match what the browser draws.
-- **Browser runtime:** `startGame`, `createInput` and `createAudio` from
-  `umbra-engine/runtime`: a fixed-tick loop with per-tick input sampling, pause and
-  restart, replay export, and sounds triggered by game events.
+A deterministic 2D and 3D game engine in TypeScript, built for AI agents. The same level,
+seed and inputs always give the same run, tick for tick, in Node and in every browser, so
+every run is a replay an agent can save, share and check.
 
 ```sh
 npm install umbra-engine
@@ -58,30 +27,40 @@ const r = await runGame(adder, null, { seed: 0, inputs: [3, 3, 3, 3] });
 console.log(r.outcome, r.ticks, r.finalStateHash); // "win" 4, and the same hash everywhere
 ```
 
-The kit-scene platformer runtime (used by the Lantern demo) runs a level headlessly:
+## What is in it
+
+| Import | Contents |
+| --- | --- |
+| `umbra-engine` | **Core:** `defineGame`, components with Zod schemas, resources, events, systems in phases, a seeded RNG, `runGame` / `createGame`, checkpoints, replays (`recordReplay` / `verifyReplay`), scene files with prefabs. **Physics:** `physics3d()` and `physics2d()` plugins (Rapier 0.12.0, pinned): bodies, colliders, characters, sensors, ray casts, all hashed and checkpointed. **Data to draw:** `Mesh`, `Camera`, `Light`, `Sprite`, `Camera2D` presentation components (saved, never hashed), and `createSpriteView` for Canvas 2D. **Assets:** `gltfTriangles` for colliders from glTF models. **Navigation:** Recast navmeshes and paths. **Exact 2D angles:** `rotationZ`, `angleZ` |
+| `umbra-engine/three` | `createSceneView`: a Three.js scene mirroring the world, smoothed between ticks; `gltfModels` for model loading. Three.js is an optional peer dependency |
+| `umbra-engine/runtime` | `startGame`: a fixed-tick browser loop that records every input and exports replays; `createInput`: keys, mouse, pointer and gamepads; `createAudio`: sounds triggered by events |
+
+## Guides
+
+- [Getting started](https://github.com/minhpham1810/umbra/blob/main/docs/getting-started.md)
+- [In the browser](https://github.com/minhpham1810/umbra/blob/main/docs/browser.md)
+- [Physics](https://github.com/minhpham1810/umbra/blob/main/docs/physics.md)
+- [Agents](https://github.com/minhpham1810/umbra/blob/main/docs/agents.md), with [`umbra-agents`](https://www.npmjs.com/package/umbra-agents): search, playtesting and an MCP server for any game
+- [Determinism](https://github.com/minhpham1810/umbra/blob/main/docs/determinism.md)
+- [Examples](https://github.com/minhpham1810/umbra/tree/main/packages/engine/examples): snake, collect (2D), room (3D physics), hop (2D physics)
+
+## Kit-scene runtime
+
+The package also still contains the older platformer runtime that the Lantern demo uses
+(`SceneSchema`, `runSim`, `createSimulation`, `kitSceneView`). It will be rebuilt on the
+core when Lantern is ported; new games should use `defineGame`.
 
 ```ts
 import { BUTTON, SceneSchema, runSim } from "umbra-engine";
 
-// A 1-wide corridor with the exit at the far end.
 const scene = SceneSchema.parse({
   pieces: Array.from({ length: 10 }, (_, z) => ({ kind: "floor", pos: { x: 0, y: 0, z } })),
   spawn: { pos: { x: 0.5, y: 1.72, z: 0.5 } },
   goals: [{ id: "exit", kind: "exit", pos: { x: 0, y: 1, z: 9 } }],
 });
-
-// Hold forward for three seconds (yaw 0 faces +z).
 const inputs = Array.from({ length: 180 }, () => ({ buttons: BUTTON.FORWARD, yaw: 0 }));
 const run = await runSim({ scene, seed: 0, inputs, maxTicks: inputs.length });
-console.log(run.outcome, run.finalStateHash); // "win", and the same hash on every machine
+console.log(run.outcome); // "win"
 ```
-
-For a game loop, `createSimulation(scene)` returns a sim you `step(frame)` once per
-fixed tick and read with `position()`, `platforms()` and `crates()`. Draw it with
-`kitSceneView` from `umbra-engine/three`, or `drawSceneSide` on a 2D canvas.
-
-The agent tools (Playtester, route search, MCP server) are in
-[`umbra-agents`](https://www.npmjs.com/package/umbra-agents). Docs, the two demo games
-and the determinism rules: [github.com/minhpham1810/umbra](https://github.com/minhpham1810/umbra).
 
 MIT licensed.

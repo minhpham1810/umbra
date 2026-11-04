@@ -35,7 +35,7 @@ export interface StrategyGame<T> { name: string; schema: z.ZodType<T>; adapt(lev
  * and `strategy` to also serve search.strategy for a build-placement game.
  */
 export function createServer<T>(opts: { strategy?: StrategyGame<T>; games?: readonly AgentGame[] } = {}): McpServer {
-  const server = new McpServer({ name: "umbra", version: "0.1.1" });
+  const server = new McpServer({ name: "umbra", version: "0.2.0" });
   if (opts.games?.length) registerGameTools(server, opts.games);
 
   server.registerTool("scene.validate", {

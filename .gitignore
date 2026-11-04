@@ -6,3 +6,4 @@ dist/
 coverage/
 /replays/
 *.tgz
+packages/agents/.docs-tmp/
