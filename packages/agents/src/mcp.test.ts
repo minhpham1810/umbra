@@ -8,6 +8,7 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { z } from "zod";
 import { createServer } from "./mcp.js";
 import type { PlanGame } from "./strategy.js";
+import { collectAgent } from "../examples/games.js";
 
 // A one-kind toy game: score = number of builds. Real games pass their own (Boo & Co.: games/boo-and-co).
 const ToySchema = z.object({ size: z.number().int().min(1).max(8) });
@@ -22,7 +23,7 @@ const client = new Client({ name: "test", version: "0" });
 
 beforeAll(async () => {
   const [a, b] = InMemoryTransport.createLinkedPair();
-  await createServer({ strategy: { name: "Toy", schema: ToySchema, adapt: toyGame } }).connect(a);
+  await createServer({ strategy: { name: "Toy", schema: ToySchema, adapt: toyGame }, games: [{ ...collectAgent, levels: { small: { w: 6, h: 4, goal: 2 } } }] }).connect(a);
   await client.connect(b);
 });
 afterAll(() => client.close());
@@ -34,8 +35,26 @@ async function call(name: string, args: Record<string, unknown>) {
 
 it("lists every design-doc tool", async () => {
   const { tools } = await client.listTools();
-  expect(tools.map((t) => t.name).sort()).toEqual(["nav.bake", "nav.path", "replay.save", "scene.validate",
-    "scene.write", "search.reach", "search.strategy", "sim.observe", "sim.run"]);
+  expect(tools.map((t) => t.name).sort()).toEqual(["game.list", "game.observe", "game.playtest", "game.replay.verify", "game.run", "game.search",
+    "nav.bake", "nav.path", "replay.save", "scene.validate", "scene.write", "search.reach", "search.strategy", "sim.observe", "sim.run"]);
+});
+
+it("runs, observes, searches and playtests any registered game", async () => {
+  expect((await call("game.list", {})).value).toEqual([expect.objectContaining({ name: "collect", levels: ["small"], hold: 6 })]);
+  const run = (await call("game.run", { game: "collect", level: "small", inputs: [{ x: 1, y: 0 }] })).value;
+  expect([run.outcome, run.ticks]).toEqual([null, 1]);
+  const obs = (await call("game.observe", { game: "collect", level: "small", inputs: [{ x: 1, y: 0 }], atTick: 1, components: ["player"] })).value;
+  expect(obs.entities).toEqual([{ id: 3, components: { player: { speed: 6 } } }]);
+  const found = (await call("game.search", { game: "collect", level: "small", seed: 3 })).value;
+  expect(found.found).toBe(true);
+  const won = (await call("game.run", { game: "collect", level: "small", seed: 3, inputs: found.inputs })).value;
+  expect(won.outcome).toBe("win");
+  const test = (await call("game.playtest", { game: "collect", level: "small" })).value;
+  expect(test.findings).toEqual([]);
+  expect((await call("game.replay.verify", { replay: test.reached[0] })).value).toMatchObject({ ok: true, outcome: "win" });
+  // Inputs are checked by the game's own schema; unknown games are named.
+  expect((await call("game.run", { game: "collect", level: "small", inputs: [{ x: 5, y: 0 }] })).isError).toBe(true);
+  expect((await call("game.run", { game: "nope", level: null, inputs: [] })).text).toMatch(/known: collect/);
 });
 
 it("searches a game's build plans through MCP", async () => {

@@ -245,8 +245,40 @@ first bundle large, so Vite prints a chunk-size warning.
 ## Agents
 
 The language model never steers the player frame by frame. It sets goals and reads
-results; the navmesh proposes routes and the physics simulation decides whether they
-work.
+results; searches propose routes and the simulation decides whether they work.
+
+### Any game
+
+Every tool below works on a game made with `defineGame`, through a small `AgentGame`:
+the moves a search may make, and optionally a score saying which states look closer to
+winning ([`packages/agents/examples/games.ts`](packages/agents/examples/games.ts) sets up
+the engine's snake, collect and room examples).
+
+```ts
+import { playtestGame, searchOutcome, type AgentGame } from "umbra-agents";
+
+const agent: AgentGame<CollectInput> = {
+  game: collect,
+  moves: [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }],
+  hold: 6,                                                // ticks per move
+  score: (world) => world.resource(Score),                // higher is closer to "win"
+};
+const route = await searchOutcome(agent, level, { target: "win" });   // inputs that win, re-run from scratch
+const report = await playtestGame(agent, level);                       // findings, plus a replay per reached outcome
+```
+
+`searchOutcome` is a beam search that branches from checkpoints instead of re-running from
+tick 0; without a score it explores at random. `playtestGame` reports:
+
+| Finding | How it is found |
+| --- | --- |
+| `crash` | A system throws during random play; the inputs up to that tick reproduce it |
+| `nondeterministic` | The same seed and inputs give a different state hash (for example `Math.random` or `Date.now` in a system) |
+| `checkpoint_mismatch` | Restoring a mid-run checkpoint and replaying diverges: some state lives outside the world |
+| `unreachable_outcome` | The bounded search finds no route to an expected outcome (no proof of impossibility) |
+
+The rest of this section covers the tools built for the kit-scene platformer (Lantern) and
+for build-placement games (Boo & Co.), which predate the generic core.
 
 ### Playtester
 
@@ -310,12 +342,17 @@ plan: the model only orders the tests and cannot skip any.
 ### MCP server
 
 ```sh
-npx umbra-mcp                                  # from the npm package
+npx umbra-mcp --games ./agent-games.js         # from the npm package; the module exports a list of AgentGame
+pnpm --silent --filter umbra-agents mcp --games examples/games.ts   # in this repository, the example games
 pnpm --silent --filter @umbra/boo-and-co mcp   # in this repository, with search.strategy for mansions
 ```
 
 | Tool | Purpose |
 | --- | --- |
+| `game.list` | The registered games, their named levels and search moves |
+| `game.run`, `game.observe` | Run any game with one input per tick; get its entities, components, resources and events at a tick |
+| `game.search`, `game.playtest` | Search for an outcome; playtest a level (findings above) |
+| `game.replay.verify` | Check an `umbra-replay` file reproduces its final hash |
 | `scene.validate`, `scene.write` | Check a scene against the schema; write it inside `UMBRA_SCENES_DIR` |
 | `sim.run`, `sim.observe` | Run the simulation; get a structured observation at a given tick |
 | `nav.bake`, `nav.path` | Bake a navmesh; query a route |
@@ -323,8 +360,8 @@ pnpm --silent --filter @umbra/boo-and-co mcp   # in this repository, with search
 | `search.strategy` | Search build plans, when a game registers a `PlanGame` with `createServer({ strategy })` |
 | `replay.save` | Run and save a replay to `UMBRA_REPLAYS_DIR` |
 
-Inputs are Zod-validated and capped at 18,000 ticks per run and 2,000 simulation runs
-per search. Kiro loads the server from [`.kiro/settings/mcp.json`](.kiro/settings/mcp.json).
+Inputs are Zod-validated (game inputs and levels by each game's own schemas) and capped
+at 18,000 ticks per run and 2,000 simulation runs per kit search. Kiro loads the server from [`.kiro/settings/mcp.json`](.kiro/settings/mcp.json).
 
 ## Studio
 

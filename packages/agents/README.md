@@ -3,7 +3,11 @@
 Agent tools for [`umbra-engine`](https://www.npmjs.com/package/umbra-engine): agents
 build, play and break levels through typed tools, and every bug comes with a replay.
 
-- **Playtester:** finds unreachable goals, fall-throughs and out-of-bounds escapes in a
+- **Any game:** `searchOutcome(agent, level)` finds inputs that reach an outcome by beam
+  search from checkpoints, and `playtestGame(agent, level)` reports crashes,
+  nondeterminism, state kept outside the world, and unreachable outcomes, for any game
+  made with `defineGame`. An `AgentGame` lists the game, its moves and an optional score.
+- **Kit-scene Playtester:** finds unreachable goals, fall-throughs and out-of-bounds escapes in a
   kit scene. A navmesh check runs first, then a physics proof; each finding reproduces
   on a fresh run.
 - **Route search:** `searchReach(scene, goalId, budget)` looks for inputs that reach a
@@ -35,7 +39,9 @@ const report = await playtest(scene, { maxRuns: 100 });
 console.log(report.findings); // this corridor has no walls: out_of_bounds findings at its edges
 ```
 
-Run the MCP server over stdio with `npx umbra-mcp`. A game can add `search.strategy`
-for its own levels with `createServer({ strategy })`.
+Run the MCP server over stdio with `npx umbra-mcp`; `npx umbra-mcp --games ./agent-games.js`
+adds the `game.*` tools (run, observe, search, playtest, verify a replay) for the games that
+module exports. In code: `createServer({ games })`, and `createServer({ strategy })` for
+`search.strategy`.
 
 Docs and examples: [github.com/minhpham1810/umbra](https://github.com/minhpham1810/umbra). MIT licensed.
