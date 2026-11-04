@@ -4,8 +4,9 @@ import { z } from "zod";
 import { createGame, defineGame, runGame, type World } from "../core/index.js";
 import { navPath } from "../nav/nav.js";
 import {
-  Character, CharacterMove, CharacterState, Collider, Contact, RigidBody, Transform, Velocity, navBakeWorld, physics, physics3d,
+  Character, CharacterMove, CharacterState, Collider, Contact, RigidBody, Velocity, navBakeWorld, physics, physics3d,
 } from "./index.js";
+import { Transform } from "../spatial/transform.js";
 
 const floor = (w: World, size = 10) =>
   w.spawn(Transform({ position: { x: 0, y: -0.5, z: 0 } }), Collider({ shape: { type: "box", half: { x: size, y: 0.5, z: size } } }));

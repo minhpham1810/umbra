@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Umbra Playground</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: #e9eef7; font: 15px/1.45 system-ui, sans-serif; color: #1f2430; }
+    canvas { display: block; width: 100vw; height: 100vh; }
+    .card { position: fixed; left: 16px; background: rgba(255, 255, 255, .9); border-radius: 12px; padding: 12px 14px;
+      box-shadow: 0 4px 16px rgba(31, 36, 48, .12); max-width: min(420px, calc(100vw - 32px)); }
+    #hud { top: 16px; }
+    #help { bottom: 16px; font-size: 13px; color: #4a5160; }
+    h1 { margin: 0 0 4px; font-size: 17px; }
+    p { margin: 0; }
+  </style>
+</head>
+<body>
+  <canvas aria-label="Example game, drawn by umbra-engine"></canvas>
+  <section id="hud" class="card"><h1>Room · umbra-engine example</h1><p id="status" role="status" aria-live="polite">Loading…</p></section>
+  <section id="help" class="card"><p>W A S D or arrows move · Space jumps · R restarts · P saves a replay to the console</p></section>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

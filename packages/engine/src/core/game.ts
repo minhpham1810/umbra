@@ -7,6 +7,11 @@
 import { z } from "zod";
 import { fnvNumber, fnvStart } from "./hash.js";
 import { World, type ComponentType, type EmittedEvent, type EventType, type ResourceType, type WorldState } from "./world.js";
+import { Transform } from "../spatial/transform.js";
+import { Camera, Light, Mesh } from "../render/components.js";
+
+/** Shared by every module, so every game has them without listing them. */
+const BUILT_IN: readonly ComponentType[] = [Transform, Mesh, Camera, Light];
 
 /**
  * Systems run in phase order, then in the order they are listed:
@@ -51,6 +56,7 @@ export interface GameDefinition<I, L> {
   input: z.ZodType<I, z.ZodTypeDef, unknown>;
   /** Validates the level a run starts from. Default: any value. */
   level?: z.ZodType<L, z.ZodTypeDef, unknown>;
+  /** The game's own components (Transform, Mesh, Camera and Light are always available). */
   components?: readonly ComponentType[];
   resources?: readonly ResourceType[];
   events?: readonly EventType[];
@@ -108,7 +114,7 @@ export async function createGame<I, L>(game: Game<I, L>, rawLevel: unknown, opts
   const plugins = game.plugins ?? [];
   const world = new World({
     seed: opts.seed ?? 0,
-    components: [...plugins.flatMap((p) => p.components ?? []), ...(game.components ?? [])],
+    components: [...BUILT_IN, ...plugins.flatMap((p) => p.components ?? []), ...(game.components ?? [])],
     resources: [...plugins.flatMap((p) => p.resources ?? []), ...(game.resources ?? [])],
     events: [...plugins.flatMap((p) => p.events ?? []), ...(game.events ?? [])],
   });

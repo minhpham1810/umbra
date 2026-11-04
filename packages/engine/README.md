@@ -19,8 +19,11 @@ replay an agent can save, share and check.
 - **Replays and proof:** a fixed 60 Hz step, inputs as integer frames, and a state hash
   after every tick.
 - **Navigation:** navmesh baking and paths (recast-navigation).
-- **Views that only draw:** Canvas 2D views, and Three.js views from `umbra-engine/three`
-  (Three.js is an optional peer dependency).
+- **Rendering:** `Mesh`, `Camera` and `Light` presentation components (saved, never
+  hashed), drawn by `createSceneView` from `umbra-engine/three` with smoothing between
+  ticks (Three.js is an optional peer dependency); Canvas 2D views as well.
+- **Browser runtime:** `startGame` and `createInput` from `umbra-engine/runtime`: a
+  fixed-tick loop with per-tick input sampling, pause and restart, and replay export.
 
 ```sh
 npm install umbra-engine

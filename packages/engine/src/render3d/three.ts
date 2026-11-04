@@ -107,3 +107,5 @@ export function gridView(tiles: readonly string[], kinds: Readonly<Record<string
   }));
   return { group, pickable, at, dispose() { box.dispose(); } };
 }
+
+export * from "./scene-view.js";

@@ -35,6 +35,10 @@
       "types": "./dist/three.d.ts",
       "import": "./dist/three.js"
     },
+    "./runtime": {
+      "types": "./dist/runtime.d.ts",
+      "import": "./dist/runtime.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [
@@ -43,8 +47,8 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsup --entry.index src/index.ts --entry.three src/render3d/three.ts --format esm --dts",
-    "dev": "tsup --entry.index src/index.ts --entry.three src/render3d/three.ts --format esm --dts --watch",
+    "build": "tsup --entry.index src/index.ts --entry.three src/render3d/three.ts --entry.runtime src/runtime/index.ts --format esm --dts",
+    "dev": "tsup --entry.index src/index.ts --entry.three src/render3d/three.ts --entry.runtime src/runtime/index.ts --format esm --dts --watch",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "determinism-check": "tsx scripts/determinism-check.ts",

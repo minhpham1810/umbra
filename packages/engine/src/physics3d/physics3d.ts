@@ -16,15 +16,9 @@ import { canonicalJson, fnvNumber, fnvStart } from "../core/hash.js";
 import { defineComponent, defineEvent, type Entity, type World } from "../core/world.js";
 import type { Plugin } from "../core/game.js";
 import { initRapier } from "../physics/world.js";
+import { IDENTITY, Transform, Vec3 } from "../spatial/transform.js";
 
 const finite = z.number().finite();
-export const Vec3 = z.object({ x: finite, y: finite, z: finite });
-export type Vec3 = z.infer<typeof Vec3>;
-export const Quat = z.object({ x: finite, y: finite, z: finite, w: finite });
-export type Quat = z.infer<typeof Quat>;
-
-/** Position and rotation (identity when omitted). Physics writes it for moving bodies. */
-export const Transform = defineComponent("physics.transform", z.object({ position: Vec3, rotation: Quat.optional() }));
 
 export const RigidBody = defineComponent("physics.body", z.object({
   /** fixed: never moves. dynamic: simulated. kinematic: moved by its Transform. */
@@ -130,7 +124,6 @@ interface Built {
   wroteVelocity: string;
 }
 
-const IDENTITY = { x: 0, y: 0, z: 0, w: 1 };
 const vec = (v: RAPIER.Vector) => ({ x: v.x, y: v.y, z: v.z });
 
 /** The 3D physics plugin. */

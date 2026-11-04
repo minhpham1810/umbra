@@ -24,6 +24,8 @@ export interface ComponentType<T = any, In = T> {
   readonly kind: "component";
   readonly name: string;
   readonly schema: z.ZodType<T, z.ZodTypeDef, unknown>;
+  /** Presentation only (meshes, cameras, sounds): saved, but left out of the state hash. */
+  readonly presentation: boolean;
 }
 export interface ComponentEntry { readonly type: ComponentType; readonly value: unknown }
 
@@ -46,12 +48,17 @@ const checkName = (what: string, name: string) => {
   if (!NAME.test(name)) throw new Error(`${what} name "${name}" must start with a letter and use letters, digits, _ . -`);
 };
 
-/** Define a component: a named piece of entity data, validated by `schema`. */
-export function defineComponent<S extends z.ZodTypeAny>(name: string, schema: S): ComponentType<z.output<S>, z.input<S>> {
+/**
+ * Define a component: a named piece of entity data, validated by `schema`.
+ * `presentation: true` is for data only renderers and audio read: it is saved and loaded
+ * like any component but not hashed, so changing a colour never invalidates a replay.
+ * Simulation systems must not read presentation components.
+ */
+export function defineComponent<S extends z.ZodTypeAny>(name: string, schema: S, opts: { presentation?: boolean } = {}): ComponentType<z.output<S>, z.input<S>> {
   checkName("component", name);
   const type = ((value: z.input<S>) => ({ type, value })) as ComponentType<z.output<S>, z.input<S>>;
   Object.defineProperties(type, {
-    kind: { value: "component" }, name: { value: name }, schema: { value: schema },
+    kind: { value: "component" }, name: { value: name }, schema: { value: schema }, presentation: { value: opts.presentation === true },
   });
   return type;
 }
@@ -215,14 +222,14 @@ export class World {
 
   // ── hash and state ────────────────────────────────────────────────────────
 
-  /** Hash of everything that decides future ticks: tick, ids, rng, components, resources. */
+  /** Hash of everything that decides future ticks: tick, ids, rng, components (not presentation ones), resources. */
   hash(): number {
     let h = fnvNumber(fnvNumber(fnvStart(), this.tick), this.nextEntity);
     for (const v of this.rng.state()) h = fnvNumber(h, v);
     for (const e of this.entities()) h = fnvNumber(h, e);
     for (const name of [...this.stores.keys()].sort()) {
       const s = this.stores.get(name)!;
-      if (!s.size) continue;
+      if (!s.size || this.types.get(name)!.presentation) continue;
       h = fnvString(h, name);
       for (const e of [...s.keys()].sort((a, b) => a - b)) h = fnvString(fnvNumber(h, e), canonicalJson(s.get(e)));
     }

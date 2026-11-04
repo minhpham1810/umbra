@@ -216,3 +216,16 @@ it("lets the outcome read the tick's events", async () => {
   const r = await runGame(bell, null, { inputs: [false, false, true, false] });
   expect([r.outcome, r.ticks, r.events.length]).toEqual(["rang", 3, 1]);
 });
+
+it("leaves presentation components out of the hash but keeps them in saves", () => {
+  const Look = defineComponent("look", z.object({ color: z.string() }), { presentation: true });
+  const w = new World({ seed: 0, components: [Pos, Look] });
+  const e = w.spawn(Pos({ x: 0, y: 0 }), Look({ color: "red" }));
+  const h = w.hash();
+  w.set(e, Look, { color: "blue" });
+  expect(w.hash()).toBe(h);
+  const saved = w.save();
+  w.set(e, Look, { color: "green" });
+  w.load(saved);
+  expect(w.get(e, Look)).toEqual({ color: "blue" });
+});
