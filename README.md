@@ -106,6 +106,37 @@ branching searches; `recordReplay` and `verifyReplay` save a run and prove it re
 `spawnScene` loads a level file of entities and prefabs. A complete example game is in
 [`packages/engine/examples/snake`](packages/engine/examples/snake).
 
+### Add 3D physics
+
+`physics3d()` is a plugin: rigid bodies, colliders and characters become components, and
+Rapier's state joins the hash and checkpoints. The plugin resolves collisions; movement,
+gravity and jumping for a character stay in your game's systems.
+
+```ts
+import { Character, CharacterMove, CharacterState, Collider, Contact, Transform, defineGame, physics3d, z } from "umbra-engine";
+
+const walker = defineGame({
+  name: "walker",
+  input: z.object({ x: z.number(), z: z.number() }),
+  plugins: [physics3d({ gravity: { x: 0, y: -20, z: 0 } })],
+  setup(world) {
+    world.spawn(Transform({ position: { x: 0, y: -0.5, z: 0 } }), Collider({ shape: { type: "box", half: { x: 10, y: 0.5, z: 10 } } }));
+    world.spawn(Transform({ position: { x: 0, y: 1, z: 4 } }), Collider({ shape: { type: "sphere", radius: 0.5 }, sensor: true }));
+    world.spawn(Transform({ position: { x: 0, y: 1, z: 0 } }), Character({ radius: 0.3, halfHeight: 0.4 }),
+      CharacterState({ grounded: false, moved: { x: 0, y: 0, z: 0 } }));
+  },
+  systems: [function walk(world, input) {
+    for (const [e] of world.query(Character)) world.set(e, CharacterMove, { x: input.x / 60, y: -0.05, z: input.z / 60 });
+  }],
+  outcome: (world) => (world.events(Contact).some((c) => c.sensor && c.started) ? "reached" : undefined),
+});
+```
+
+Shapes are boxes, spheres, capsules, cylinders and triangle meshes; bodies are fixed,
+dynamic or kinematic. `physics(world)` gives systems impulses and ray casts, and
+`navBakeWorld(world)` bakes a navmesh from the fixed colliders. A complete example is in
+[`packages/engine/examples/room`](packages/engine/examples/room).
+
 ### Kit-scene platformer runtime
 
 The engine also ships the 3D platformer runtime that Lantern uses (to be rebuilt on the
@@ -354,7 +385,9 @@ characters stay in each game.
 | `umbra-engine` | Canvas 2D: `drawSceneSide` (side view of a kit scene) and `drawGridTop` (top-down tile grid), with `centerView`, `fitView` and `toWorld` |
 | `umbra-engine/three` | Three.js: `kitSceneView` (blocks, pits, platforms, crates, goals) and `gridView` (tile boxes with pickable floors) |
 
-Navigation bakes a Recast navmesh from a scene's static blocks:
+Navigation bakes a Recast navmesh: `navBakeWorld(world, agent)` from a physics game's fixed
+colliders, `navBakeTriangles(positions, indices, agent)` from any triangles, or
+`navBake(scene)` from a kit scene's static blocks:
 
 ```ts
 import { navBake, navDispose, navPath } from "umbra-engine";

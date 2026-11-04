@@ -26,15 +26,36 @@ export async function navBake(raw: Scene): Promise<NavBakeResult> {
     for (const i of [0,1,2,0,2,3, 4,6,5,4,7,6, 0,4,5,0,5,1,
       3,2,6,3,6,7, 0,3,7,0,7,4, 1,5,6,1,6,2]) indices.push(base+i);
   }
+  return navBakeTriangles(positions, indices);
+}
+
+/** The walker a navmesh is baked for, in metres. */
+export interface NavAgent {
+  /** Body radius (default 0.3). */
+  radius?: number;
+  /** Clearance needed overhead (default 1.4). */
+  height?: number;
+  /** Highest step it can walk up (default 0.2). */
+  climb?: number;
+  /** Voxel size: smaller is more exact and slower (default 0.1). */
+  cellSize?: number;
+}
+
+/** Bake a navmesh from any triangle soup (xyz positions, index triples), for the given walker. */
+export async function navBakeTriangles(positions: readonly number[], indices: readonly number[], agent: NavAgent = {}): Promise<NavBakeResult> {
   const navmeshId = `nav-${++nextId}`;
   if (!indices.length) {
     meshes.set(navmeshId, null);
     return { navmeshId, islands: [] };
   }
+  const cs = agent.cellSize ?? 0.1;
   await (ready ??= init());
-  const result = generateSoloNavMesh(positions, indices, {
-    cs: 0.1, ch: 0.1, walkableHeight: 14, walkableClimb: 2,
-    walkableRadius: 3, minRegionArea: 0, mergeRegionArea: 0,
+  const result = generateSoloNavMesh([...positions], [...indices], {
+    cs, ch: cs,
+    walkableHeight: Math.ceil((agent.height ?? 1.4) / cs),
+    walkableClimb: Math.floor((agent.climb ?? 0.2) / cs + 1e-9),
+    walkableRadius: Math.ceil((agent.radius ?? 0.3) / cs - 1e-9),
+    minRegionArea: 0, mergeRegionArea: 0,
   });
   if (!result.success) throw new Error(`Navmesh bake failed: ${result.error}`);
   const mesh = result.navMesh;

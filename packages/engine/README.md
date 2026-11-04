@@ -9,8 +9,11 @@ replay an agent can save, share and check.
   checkpoints (`save` / `load`), replays (`recordReplay` / `verifyReplay`) and scene
   files with prefabs (`spawnScene`). See the example in the repository's
   `packages/engine/examples/snake`.
-- **Physics:** Rapier 3D (pinned to 0.12.0), a kinematic character controller, moving
-  platforms, pushable crates, goal sensors.
+- **3D physics plugin:** `plugins: [physics3d()]` makes rigid bodies (fixed, dynamic,
+  kinematic), colliders (box, sphere, capsule, cylinder, mesh, sensors) and a
+  collision-resolving character into components, with Contact events, impulses, ray
+  casts and `navBakeWorld`. Rapier (pinned to 0.12.0) state is hashed and checkpointed.
+  See `packages/engine/examples/room`.
 - **Scenes as data:** JSON kit pieces on a 1 m grid (floor, wall, pit, moving platform,
   crate, …), validated with Zod.
 - **Replays and proof:** a fixed 60 Hz step, inputs as integer frames, and a state hash
