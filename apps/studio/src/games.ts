@@ -6,5 +6,6 @@ import type { Game } from "umbra-engine";
 import { snake } from "../../../packages/engine/examples/snake/snake.js";
 import { collect } from "../../../packages/engine/examples/collect/collect.js";
 import { room } from "../../../packages/engine/examples/room/room.js";
+import { hop } from "../../../packages/engine/examples/hop/hop.js";
 
-export const games: readonly Game<any, any>[] = [snake, collect, room];
+export const games: readonly Game<any, any>[] = [snake, collect, room, hop];

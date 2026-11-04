@@ -1,6 +1,6 @@
 # umbra-engine
 
-A deterministic, headless 3D game engine for AI agents. The same scene and inputs
+A deterministic, headless 2D and 3D game engine for AI agents. The same scene and inputs
 always give the same run, tick for tick, in Node and in the browser, so every run is a
 replay an agent can save, share and check.
 
@@ -14,6 +14,11 @@ replay an agent can save, share and check.
   collision-resolving character into components, with Contact events, impulses, ray
   casts and `navBakeWorld`. Rapier (pinned to 0.12.0) state is hashed and checkpointed.
   See `packages/engine/examples/room`.
+- **2D physics plugin:** `plugins: [physics2d()]` gives the same in the x/y plane (Rapier
+  2D, pinned to 0.12.0): `RigidBody2D`, `Collider2D` (box, circle, capsule, convex,
+  polyline), `Velocity2D`, `Character2D`, `Contact2D` events and `physics2dOf(world)`
+  for impulses and ray casts. `rotationZ` and `angleZ` convert 2D angles exactly on every
+  JavaScript engine. See `packages/engine/examples/hop`.
 - **Scenes as data:** JSON kit pieces on a 1 m grid (floor, wall, pit, moving platform,
   crate, …), validated with Zod.
 - **Replays and proof:** a fixed 60 Hz step, inputs as integer frames, and a state hash

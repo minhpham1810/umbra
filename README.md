@@ -138,6 +138,40 @@ dynamic or kinematic. `physics(world)` gives systems impulses and ray casts, and
 `navBakeWorld(world)` bakes a navmesh from the fixed colliders. A complete example is in
 [`packages/engine/examples/room`](packages/engine/examples/room).
 
+### Add 2D physics
+
+`physics2d()` is the same plugin in the x/y plane (Rapier 2D, also pinned to 0.12.0): it
+shares `Transform`, reads and writes its rotation as a turn about z, and leaves its z alone
+for draw order. Components carry a `2D` suffix:
+
+```ts
+import { Character2D, CharacterMove2D, CharacterState2D, Collider2D, RigidBody2D, Transform, defineGame, physics2d, rotationZ, z } from "umbra-engine";
+
+const pile = defineGame({
+  name: "pile",
+  input: z.object({ x: z.number() }),
+  plugins: [physics2d({ gravity: { x: 0, y: -20 } })],
+  setup(world) {
+    world.spawn(Transform({ position: { x: 0, y: 0, z: 0 } }),
+      Collider2D({ shape: { type: "polyline", points: [{ x: -10, y: 3 }, { x: 0, y: 0 }, { x: 10, y: 0 }] } }));
+    world.spawn(Transform({ position: { x: -5, y: 6, z: 0 }, rotation: rotationZ(0.4) }), RigidBody2D({ type: "dynamic" }),
+      Collider2D({ shape: { type: "box", half: { x: 0.5, y: 0.5 } } }));
+    world.spawn(Transform({ position: { x: 2, y: 1, z: 0 } }), Character2D({ radius: 0.3, halfHeight: 0.4 }),
+      CharacterState2D({ grounded: false, moved: { x: 0, y: 0 } }));
+  },
+  systems: [function walk(world, input) {
+    for (const [e] of world.query(Character2D)) world.set(e, CharacterMove2D, { x: input.x / 60, y: -0.05 });
+  }],
+});
+```
+
+Shapes are boxes, circles, capsules, convex hulls and polylines (terrain). `physics2dOf(world)`
+gives systems impulses and ray casts; `Contact2D` events report touches. `rotationZ(angle)` and
+`angleZ(rotation)` convert 2D angles exactly, the same on every JavaScript engine
+(`Math.sin` and friends are not, so the determinism lint bans them in simulation code).
+A complete example is [`packages/engine/examples/hop`](packages/engine/examples/hop), playable
+in the playground at `?game=hop`.
+
 ### Kit-scene platformer runtime
 
 The engine also ships the 3D platformer runtime that Lantern uses (to be rebuilt on the
@@ -479,8 +513,8 @@ node's subtree (such as a simplified collision mesh); compressed (Draco, meshopt
 sparse data are rejected rather than read approximately. Read the bytes before the run
 starts and pass the triangles in the level, so the level itself records the geometry.
 
-`apps/playground` plays the 3D room example and, at `?game=collect`, the 2D collect example
-this way (`pnpm --filter @umbra/playground dev`); replays recorded there reproduce exactly
+`apps/playground` plays the 3D room example and, at `?game=collect` and `?game=hop`, the 2D
+collect and hop examples this way (`pnpm --filter @umbra/playground dev`); replays recorded there reproduce exactly
 when verified in Node.
 
 Navigation bakes a Recast navmesh: `navBakeWorld(world, agent)` from a physics game's fixed

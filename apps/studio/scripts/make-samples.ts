@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { SceneSchema, runSim, type InputFrame, type Replay, type Scene } from "umbra-engine";
 import { fixEvidence, fixFinding, playtest, playtestGame, searchReach, type AgentGame } from "umbra-agents";
-import { collectAgent, roomAgent } from "../../../packages/agents/examples/games.js";
+import { collectAgent, hopAgent, roomAgent } from "../../../packages/agents/examples/games.js";
 
 const out = new URL("../public/replays/", import.meta.url);
 const level = (f: string) => SceneSchema.parse(JSON.parse(readFileSync(new URL(`../../../games/lantern/src/${f}`, import.meta.url), "utf8")));
@@ -24,6 +24,7 @@ async function save(id: string, title: string, scene: Scene, inputs: InputFrame[
 for (const [id, title, agent, level] of [
   ["room-win", "Room: crate and ledge (3D)", roomAgent, null],
   ["collect-win", "Collect: five coins (2D)", collectAgent, collectAgent.levels!["playground"]],
+  ["hop-win", "Hop: 2D physics platformer", hopAgent, null],
 ] as [string, string, AgentGame, unknown][]) {
   const report = await playtestGame(agent, level, { fuzzRuns: 2 });
   const replay = report.reached[0];
