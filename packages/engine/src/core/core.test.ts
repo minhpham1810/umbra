@@ -179,7 +179,13 @@ describe("games", () => {
     expect(counter).toBe(1);
     expect(run.hash).not.toBe(h0);
     run.dispose();
-    expect(() => defineGame({ ...walkers, systems: [function a() {}, function a() {}] })).toThrow(/two systems/);
+    // Minified builds strip or reuse function names; systems still run.
+    const ran: number[] = [];
+    const anon = await createGame(defineGame({ ...walkers, name: "anon", systems: [() => { ran.push(1); }, Object.defineProperty(() => { ran.push(2); }, "name", { value: "" })] }), { units: 1 });
+    anon.step({ attack: false });
+    expect(ran).toEqual([1, 2]);
+    anon.dispose();
+    expect(() => defineGame({ ...walkers, systems: [{ name: "x", phase: "later" as never, run() {} }] })).toThrow(/unknown phase/);
   });
 });
 

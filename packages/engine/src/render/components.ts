@@ -72,3 +72,37 @@ export const Light = defineComponent("light", z.discriminatedUnion("type", [
     distance: z.number().min(0).optional(), angle: z.number().positive().max(1.57).default(0.5),
     target: Vec3.optional(), castShadow: z.boolean().optional() }),
 ]), { presentation: true });
+
+// ── 2D ──────────────────────────────────────────────────────────────────────
+// 2D games use the x/y plane (y up) of the same Transform; rotation is the turn about z.
+
+const Size = z.object({ x: positive, y: positive });
+
+/** Something to draw in 2D at the entity's Transform. Higher layers draw on top; ties go by entity id. */
+export const Sprite = defineComponent("sprite", z.object({
+  shape: z.discriminatedUnion("type", [
+    z.object({ type: z.literal("rect"), size: Size }),
+    z.object({ type: z.literal("circle"), radius: positive }),
+    /** An image asset (loaded by the view's image loader) stretched to `size`; `frame` picks a sprite-sheet cell in pixels. */
+    z.object({ type: z.literal("image"), asset: z.string().min(1), size: Size,
+      frame: z.object({ x: z.number().min(0), y: z.number().min(0), w: positive, h: positive }).optional() }),
+    /** Text `height` world units tall, centred on the Transform. */
+    z.object({ type: z.literal("text"), text: z.string(), height: positive, font: z.string().default("system-ui, sans-serif") }),
+  ]),
+  /** Fill colour for rect, circle and text (images keep their own colours). */
+  color: Color.default("#ffffff"),
+  /** Outline for rect and circle. */
+  stroke: z.object({ color: Color, width: positive }).optional(),
+  offset: z.object({ x: z.number().finite(), y: z.number().finite() }).optional(),
+  layer: z.number().int().default(0),
+  opacity: z.number().min(0).max(1).default(1),
+  flipX: z.boolean().optional(),
+  flipY: z.boolean().optional(),
+  visible: z.boolean().default(true),
+}), { presentation: true });
+
+/** A 2D camera centred on the entity's Transform: `zoom` is screen pixels per world unit. */
+export const Camera2D = defineComponent("camera2d", z.object({
+  zoom: positive.default(32),
+  active: z.boolean().default(true),
+}), { presentation: true });

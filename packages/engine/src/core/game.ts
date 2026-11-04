@@ -8,10 +8,10 @@ import { z } from "zod";
 import { fnvNumber, fnvStart } from "./hash.js";
 import { World, type ComponentType, type EmittedEvent, type EventType, type ResourceType, type WorldState } from "./world.js";
 import { Transform } from "../spatial/transform.js";
-import { Camera, Light, Mesh } from "../render/components.js";
+import { Camera, Camera2D, Light, Mesh, Sprite } from "../render/components.js";
 
 /** Shared by every module, so every game has them without listing them. */
-const BUILT_IN: readonly ComponentType[] = [Transform, Mesh, Camera, Light];
+const BUILT_IN: readonly ComponentType[] = [Transform, Mesh, Camera, Light, Sprite, Camera2D];
 
 /**
  * Systems run in phase order, then in the order they are listed:
@@ -25,7 +25,7 @@ export interface System<I = unknown, L = unknown> {
   phase?: Phase;
   run(world: World, input: I, level: L): void;
 }
-/** A system, or a plain function (its name is the function's name). */
+/** A system, or a plain function. Names only label systems in errors (minifiers may strip function names). */
 export type SystemLike<I = unknown, L = unknown> = System<I, L> | ((world: World, input: I, level: L) => void);
 
 /** A plugin's state for one run: its systems, plus how to hash, save and free that state. */
@@ -56,7 +56,7 @@ export interface GameDefinition<I, L> {
   input: z.ZodType<I, z.ZodTypeDef, unknown>;
   /** Validates the level a run starts from. Default: any value. */
   level?: z.ZodType<L, z.ZodTypeDef, unknown>;
-  /** The game's own components (Transform, Mesh, Camera and Light are always available). */
+  /** The game's own components (Transform, Mesh, Camera, Light, Sprite and Camera2D are always available). */
   components?: readonly ComponentType[];
   resources?: readonly ResourceType[];
   events?: readonly EventType[];
@@ -73,22 +73,16 @@ export type Game<I, L> = Readonly<GameDefinition<I, L>> & { readonly kind: "game
 /** Define a game. Checks names up front so mistakes fail at load, not mid-run. */
 export function defineGame<I, L = unknown>(def: GameDefinition<I, L>): Game<I, L> {
   if (!def.name) throw new Error("a game needs a name");
-  const names = new Set<string>();
-  for (const s of def.systems ?? []) {
-    const n = systemOf(s).name;
-    if (names.has(n)) throw new Error(`game "${def.name}" lists two systems named "${n}"`);
-    names.add(n);
-  }
+  (def.systems ?? []).forEach(systemOf); // fail at load on an unknown phase
   return Object.freeze({ ...def, kind: "game" as const });
 }
 
-function systemOf<I, L>(s: SystemLike<I, L>): System<I, L> {
+function systemOf<I, L>(s: SystemLike<I, L>, i = 0): System<I, L> {
   if (typeof s !== "function") {
     if (s.phase && !PHASES.includes(s.phase)) throw new Error(`system "${s.name}" has unknown phase "${s.phase}"`);
     return s;
   }
-  if (!s.name) throw new Error("a system function needs a name: use a named function or { name, run }");
-  return { name: s.name, run: s };
+  return { name: s.name || `system ${i + 1}`, run: s };
 }
 
 /** Everything needed to resume a run exactly: the world, each plugin's state, the outcome. */
@@ -125,7 +119,7 @@ export async function createGame<I, L>(game: Game<I, L>, rawLevel: unknown, opts
   } catch (e) { for (const [, r] of runs) r.dispose?.(); throw e; }
 
   // Phase order, then plugins' systems before the game's within a phase.
-  const all = [...runs.flatMap(([, r]) => (r.systems ?? []).map(systemOf)), ...(game.systems ?? []).map(systemOf)];
+  const all = [...runs.flatMap(([, r]) => (r.systems ?? []).map((s, i) => systemOf(s, i))), ...(game.systems ?? []).map((s, i) => systemOf(s, i))];
   const ordered = PHASES.flatMap((ph) => all.filter((s) => (s.phase ?? "update") === ph));
   world.takeEvents(); // events from setup belong to no tick
 

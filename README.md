@@ -50,8 +50,9 @@ games run on the same engine: **Lantern**, a dark third-person platformer, and
   and a Playtester, Builder and Fixer, all exposed through an MCP server.
 - **Measured, not claimed.** On a benchmark of 96 levels with planted bugs, the
   Playtester finds 80 of 80 with no false alarms (see [Benchmark](#benchmark)).
-- **Views that only draw.** Canvas 2D and Three.js views read simulation state and
-  never write it, so a run hashes the same however it is drawn.
+- **Views that only draw.** Canvas 2D sprites, Three.js meshes and glTF models, and
+  event-driven sounds read simulation state and never write it, so a run hashes the
+  same however it is drawn.
 
 ## Install
 
@@ -377,7 +378,8 @@ Details: [`.kiro/steering/determinism.md`](.kiro/steering/determinism.md).
 
 ## Rendering, runtime and navigation
 
-What to draw is data: `Mesh`, `Camera` and `Light` are **presentation components**,
+What to draw is data: `Mesh`, `Camera` and `Light` (3D) and `Sprite` and `Camera2D` (2D)
+are **presentation components**,
 spawned in `setup` like any other and saved with the world, but left out of the state
 hash, so changing a colour never invalidates a replay. Renderers only read the world.
 
@@ -402,12 +404,40 @@ const replay = await loop.replay();                        // the session so far
 
 | Import | Contents |
 | --- | --- |
-| `umbra-engine` | Components `Transform`, `Mesh`, `Camera`, `Light` (built into every game); Canvas 2D views `drawSceneSide` and `drawGridTop` |
-| `umbra-engine/three` | `createSceneView(world)`: a Three.js scene mirroring meshes, cameras and lights, smoothed between ticks, with optional model loading; kit-scene helpers `kitSceneView` and `gridView` |
-| `umbra-engine/runtime` | `startGame`: a fixed-tick browser loop that samples input per tick, records every input, and can pause, restart and export a replay; `createInput`: keys, mouse, pointer and gamepad state with per-tick edges |
+| `umbra-engine` | Components `Transform`, `Mesh`, `Camera`, `Light`, `Sprite`, `Camera2D` (built into every game); `createSpriteView(world, ctx)`: a Canvas 2D view of sprites (rectangles, circles, images with sprite-sheet frames, text) by layer, smoothed between ticks; `gltfTriangles(bytes)`: a model's triangles, for colliders and navmeshes; kit-scene views `drawSceneSide` and `drawGridTop` |
+| `umbra-engine/three` | `createSceneView(world)`: a Three.js scene mirroring meshes, cameras and lights, smoothed between ticks; `gltfModels({ path })`: glTF loading for `{ type: "model" }` meshes; kit-scene helpers `kitSceneView` and `gridView` |
+| `umbra-engine/runtime` | `startGame`: a fixed-tick browser loop that samples input per tick, records every input, and can pause, restart and export a replay; `createInput`: keys, mouse, pointer and gamepad state with per-tick edges; `createAudio({ sounds })`: Web Audio sounds triggered by event names |
 
-`apps/playground` plays the room example this way (`pnpm --filter @umbra/playground dev`);
-a replay recorded there reproduces exactly when verified in Node.
+2D games use the same Transform's x and y (y up), and its turn about z:
+
+```ts
+import { createSpriteView } from "umbra-engine";
+import { createAudio } from "umbra-engine/runtime";
+
+// In setup: world.spawn(Transform({ position: { x: 0, y: 0, z: 0 } }), Sprite({ shape: { type: "circle", radius: 0.4 }, color: "#f5b301" }));
+const view = createSpriteView(run.world, canvas.getContext("2d")!, { pixelRatio: devicePixelRatio });
+const audio = createAudio({ sounds: { collected: "coin.wav", hit: (d) => (d.hard ? "crash.wav" : undefined) } });
+// afterTick: (run, events) => { view.capture(); audio.play(events); }   render: (run, alpha) => view.draw(alpha)
+```
+
+A model drawn in the browser and the collider physics uses come from the same file, so
+headless runs collide with exactly what players see:
+
+```ts
+const bytes = await readFile("level.glb");               // or (await fetch(url)).arrayBuffer() in a browser
+world.spawn(Transform({ position: { x: 0, y: 0, z: 0 } }),
+  Mesh({ geometry: { type: "model", asset: "level.glb" } }),          // drawn by gltfModels()
+  Collider({ shape: { type: "mesh", ...gltfTriangles(bytes, { node: "collision" }) } }));
+```
+
+`gltfTriangles` applies node transforms and reads .glb or .gltf files, optionally just one
+node's subtree (such as a simplified collision mesh); compressed (Draco, meshopt) and
+sparse data are rejected rather than read approximately. Read the bytes before the run
+starts and pass the triangles in the level, so the level itself records the geometry.
+
+`apps/playground` plays the 3D room example and, at `?game=collect`, the 2D collect example
+this way (`pnpm --filter @umbra/playground dev`); replays recorded there reproduce exactly
+when verified in Node.
 
 Navigation bakes a Recast navmesh: `navBakeWorld(world, agent)` from a physics game's fixed
 colliders, `navBakeTriangles(positions, indices, agent)` from any triangles, or

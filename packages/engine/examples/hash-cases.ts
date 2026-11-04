@@ -3,6 +3,7 @@
 import { runGame } from "../src/index.js";
 import { snake, type SnakeInput } from "./snake/snake.js";
 import { room, type RoomInput } from "./room/room.js";
+import { collect, type CollectInput } from "./collect/collect.js";
 
 const turns: SnakeInput[] = ["down", null, null, "right", null, "up", null, null, null, "right", "down", null, "left"];
 const level = { width: 12, height: 12, goal: 50 };
@@ -23,4 +24,5 @@ export const cases = [
   })),
   { name: "examples/room route", run: async () => (await runGame(room, null, { inputs: route })).finalStateHash },
   { name: "examples/room wander", run: async () => (await runGame(room, null, { inputs: wander })).finalStateHash },
+  { name: "examples/collect wander", run: async () => (await runGame(collect, { w: 8, h: 5, goal: 50 }, { seed: 4, inputs: wander.map((i): CollectInput => ({ x: i.x, y: i.z })) })).finalStateHash },
 ];
