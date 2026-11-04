@@ -4,7 +4,8 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { SceneSchema, runSim, type InputFrame, type Replay, type Scene } from "umbra-engine";
-import { fixEvidence, fixFinding, playtest, searchReach } from "umbra-agents";
+import { fixEvidence, fixFinding, playtest, playtestGame, searchReach, type AgentGame } from "umbra-agents";
+import { collectAgent, roomAgent } from "../../../packages/agents/examples/games.js";
 
 const out = new URL("../public/replays/", import.meta.url);
 const level = (f: string) => SceneSchema.parse(JSON.parse(readFileSync(new URL(`../../../games/lantern/src/${f}`, import.meta.url), "utf8")));
@@ -17,6 +18,20 @@ async function save(id: string, title: string, scene: Scene, inputs: InputFrame[
   writeFileSync(new URL(`${id}.json`, out), JSON.stringify(replay));
   index.push({ file: `${id}.json`, title, note });
   console.log(`wrote ${id}.json (${inputs.length} ticks)`);
+}
+
+// Any defineGame game: the generic playtester's proof that a level can be won.
+for (const [id, title, agent, level] of [
+  ["room-win", "Room: crate and ledge (3D)", roomAgent, null],
+  ["collect-win", "Collect: five coins (2D)", collectAgent, collectAgent.levels!["playground"]],
+] as [string, string, AgentGame, unknown][]) {
+  const report = await playtestGame(agent, level, { fuzzRuns: 2 });
+  const replay = report.reached[0];
+  if (!replay || report.findings.length) throw new Error(`${id}: ${JSON.stringify(report.findings)}`);
+  const note = `playtestGame found no bugs and searched out this win (${replay.ticks} ticks).`;
+  writeFileSync(new URL(`${id}.json`, out), JSON.stringify({ ...replay, note }));
+  index.push({ file: `${id}.json`, title, note });
+  console.log(`wrote ${id}.json (${replay.ticks} ticks)`);
 }
 
 for (const [id, title, file, note] of [

@@ -1,5 +1,15 @@
 [
   {
+    "file": "room-win.json",
+    "title": "Room: crate and ledge (3D)",
+    "note": "playtestGame found no bugs and searched out this win (90 ticks)."
+  },
+  {
+    "file": "collect-win.json",
+    "title": "Collect: five coins (2D)",
+    "note": "playtestGame found no bugs and searched out this win (321 ticks)."
+  },
+  {
     "file": "lantern-1-win.json",
     "title": "Lantern 1: jump the gap",
     "note": "searchReach found a winning route: walk, then jump the broken floor."
