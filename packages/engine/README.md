@@ -19,11 +19,16 @@ replay an agent can save, share and check.
 - **Replays and proof:** a fixed 60 Hz step, inputs as integer frames, and a state hash
   after every tick.
 - **Navigation:** navmesh baking and paths (recast-navigation).
-- **Rendering:** `Mesh`, `Camera` and `Light` presentation components (saved, never
-  hashed), drawn by `createSceneView` from `umbra-engine/three` with smoothing between
-  ticks (Three.js is an optional peer dependency); Canvas 2D views as well.
-- **Browser runtime:** `startGame` and `createInput` from `umbra-engine/runtime`: a
-  fixed-tick loop with per-tick input sampling, pause and restart, and replay export.
+- **Rendering:** `Mesh`, `Camera` and `Light` (3D) and `Sprite` and `Camera2D` (2D)
+  presentation components (saved, never hashed). `createSceneView` from
+  `umbra-engine/three` draws 3D with glTF models via `gltfModels` (Three.js is an
+  optional peer dependency); `createSpriteView` draws 2D on a canvas. Both smooth
+  between ticks. See `packages/engine/examples/collect` for a 2D game.
+- **Models as colliders:** `gltfTriangles(bytes)` reads a .glb/.gltf's triangles
+  headlessly, for mesh colliders and navmeshes that match what the browser draws.
+- **Browser runtime:** `startGame`, `createInput` and `createAudio` from
+  `umbra-engine/runtime`: a fixed-tick loop with per-tick input sampling, pause and
+  restart, replay export, and sounds triggered by game events.
 
 ```sh
 npm install umbra-engine

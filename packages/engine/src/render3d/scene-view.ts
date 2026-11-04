@@ -10,7 +10,8 @@ import * as THREE from "three";
 import { canonicalJson } from "../core/hash.js";
 import type { Entity, World } from "../core/world.js";
 import { Camera, Light, Mesh, type Geometry } from "../render/components.js";
-import { IDENTITY, Transform, type Quat, type Vec3 } from "../spatial/transform.js";
+import { trackPoses } from "../render/poses.js";
+import { Transform } from "../spatial/transform.js";
 
 /** Loads a model asset (e.g. a glTF file) into an object the view can clone per entity. */
 export type ModelLoader = (asset: string) => Promise<THREE.Object3D>;
@@ -38,14 +39,9 @@ export interface SceneView {
   dispose(): void;
 }
 
-interface Pose { position: Vec3; rotation: Quat }
 interface Drawn { object: THREE.Object3D; key: string; kind: "mesh" | "camera" | "light"; dispose(): void }
 
 const color = (c: string | number) => new THREE.Color(c);
-const poseOf = (world: World, e: Entity): Pose | undefined => {
-  const t = world.get(e, Transform);
-  return t && { position: t.position, rotation: t.rotation ?? IDENTITY };
-};
 
 function geometry(g: Exclude<Geometry, { type: "model" }>): THREE.BufferGeometry {
   switch (g.type) {
@@ -71,8 +67,7 @@ export function createSceneView(world: World, opts: SceneViewOptions = {}): Scen
   let camera = fallback;
   let aspect = 1;
   const drawn = new Map<Entity, Drawn[]>();
-  const before = new Map<Entity, Pose>();
-  const after = new Map<Entity, Pose>();
+  const poses = trackPoses(world);
   const models = new Map<string, Promise<THREE.Object3D>>();
   let disposed = false;
 
@@ -178,14 +173,15 @@ export function createSceneView(world: World, opts: SceneViewOptions = {}): Scen
     for (const [e, ds] of drawn) {
       if (seen.has(e)) continue;
       for (const d of ds) { d.object.removeFromParent(); d.dispose(); }
-      drawn.delete(e); before.delete(e); after.delete(e);
+      drawn.delete(e); poses.forget(e);
     }
   };
 
   const q1 = new THREE.Quaternion(), q2 = new THREE.Quaternion();
   const place = (e: Entity, alpha: number) => {
-    const a = before.get(e) ?? after.get(e), b = after.get(e);
-    if (!a || !b) return;
+    const ab = poses.between(e);
+    if (!ab) return;
+    const [a, b] = ab;
     for (const d of drawn.get(e) ?? []) {
       d.object.position.set(a.position.x + (b.position.x - a.position.x) * alpha,
         a.position.y + (b.position.y - a.position.y) * alpha, a.position.z + (b.position.z - a.position.z) * alpha);
@@ -198,21 +194,10 @@ export function createSceneView(world: World, opts: SceneViewOptions = {}): Scen
   const view: SceneView = {
     scene,
     get camera() { return camera; },
-    capture() {
-      for (const e of world.entities()) {
-        const p = poseOf(world, e);
-        if (!p) continue;
-        const prev = after.get(e);
-        before.set(e, prev ?? structuredClone(p));
-        after.set(e, structuredClone(p));
-      }
-    },
+    capture: poses.capture,
     sync(alpha = 1) {
       reconcile();
-      for (const e of drawn.keys()) {
-        if (!after.has(e)) { const p = poseOf(world, e); if (p) { after.set(e, structuredClone(p)); before.set(e, structuredClone(p)); } }
-        place(e, Math.min(1, Math.max(0, alpha)));
-      }
+      for (const e of drawn.keys()) place(e, Math.min(1, Math.max(0, alpha)));
       camera = fallback;
       for (const [e, c] of world.query(Camera)) {
         if (!c.active) continue;

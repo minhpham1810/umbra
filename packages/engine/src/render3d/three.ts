@@ -109,3 +109,4 @@ export function gridView(tiles: readonly string[], kinds: Readonly<Record<string
 }
 
 export * from "./scene-view.js";
+export * from "./gltf-models.js";
