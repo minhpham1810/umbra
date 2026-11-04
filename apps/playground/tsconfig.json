@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2022", "DOM"],
+    "types": ["vite/client"],
+    "skipLibCheck": true,
+    "paths": {
+      "umbra-engine/three": ["../../packages/engine/src/render3d/three.ts"],
+      "umbra-engine/runtime": ["../../packages/engine/src/runtime/index.ts"],
+      "umbra-engine": ["../../packages/engine/src/index.ts"]
+    }
+  },
+  "include": ["src", "vite.config.ts", "../../packages/engine/examples"]
+}

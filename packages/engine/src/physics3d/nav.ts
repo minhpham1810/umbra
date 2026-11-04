@@ -4,7 +4,8 @@
  */
 import { navBakeTriangles, type NavAgent, type NavBakeResult } from "../nav/nav.js";
 import type { World } from "../core/world.js";
-import { Collider, RigidBody, Transform, type Quat, type Vec3 } from "./physics3d.js";
+import { Collider, RigidBody } from "./physics3d.js";
+import { Transform, type Quat, type Vec3 } from "../spatial/transform.js";
 
 /** Rotate v by unit quaternion q. */
 function rotate(v: Vec3, q: Quat): Vec3 {

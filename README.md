@@ -375,15 +375,39 @@ and caveats are in [`benchmark/README.md`](benchmark/README.md).
 
 Details: [`.kiro/steering/determinism.md`](.kiro/steering/determinism.md).
 
-## Rendering and navigation
+## Rendering, runtime and navigation
 
-The engine draws but never owns a game's look: materials, lights, cameras and
-characters stay in each game.
+What to draw is data: `Mesh`, `Camera` and `Light` are **presentation components**,
+spawned in `setup` like any other and saved with the world, but left out of the state
+hash, so changing a colour never invalidates a replay. Renderers only read the world.
 
-| Import | Views |
+```ts
+import { createSceneView } from "umbra-engine/three";
+import { createInput, startGame } from "umbra-engine/runtime";
+
+const input = createInput(window);
+let view: ReturnType<typeof createSceneView> | undefined;
+const loop = await startGame(myGame, level, {
+  input: () => ({ jump: input.pressed("Space") }),        // sampled once per fixed tick
+  afterTick: () => { input.endTick(); view?.capture(); },
+  render(run, alpha) {                                     // every frame, alpha = 0–1 between ticks
+    view ??= createSceneView(run.world);
+    view.setAspect(innerWidth / innerHeight);
+    view.sync(alpha);
+    renderer.render(view.scene, view.camera);              // a THREE.WebGLRenderer
+  },
+});
+const replay = await loop.replay();                        // the session so far, replayable anywhere
+```
+
+| Import | Contents |
 | --- | --- |
-| `umbra-engine` | Canvas 2D: `drawSceneSide` (side view of a kit scene) and `drawGridTop` (top-down tile grid), with `centerView`, `fitView` and `toWorld` |
-| `umbra-engine/three` | Three.js: `kitSceneView` (blocks, pits, platforms, crates, goals) and `gridView` (tile boxes with pickable floors) |
+| `umbra-engine` | Components `Transform`, `Mesh`, `Camera`, `Light` (built into every game); Canvas 2D views `drawSceneSide` and `drawGridTop` |
+| `umbra-engine/three` | `createSceneView(world)`: a Three.js scene mirroring meshes, cameras and lights, smoothed between ticks, with optional model loading; kit-scene helpers `kitSceneView` and `gridView` |
+| `umbra-engine/runtime` | `startGame`: a fixed-tick browser loop that samples input per tick, records every input, and can pause, restart and export a replay; `createInput`: keys, mouse, pointer and gamepad state with per-tick edges |
+
+`apps/playground` plays the room example this way (`pnpm --filter @umbra/playground dev`);
+a replay recorded there reproduces exactly when verified in Node.
 
 Navigation bakes a Recast navmesh: `navBakeWorld(world, agent)` from a physics game's fixed
 colliders, `navBakeTriangles(positions, indices, agent)` from any triangles, or

@@ -31,6 +31,7 @@ jobs:
       - run: pnpm --filter @umbra/lantern build
       - run: pnpm --filter @umbra/boo-and-co build
       - run: pnpm --filter @umbra/studio build
+      - run: pnpm --filter @umbra/playground build
 
   # ── engine tests (includes determinism property tests) ────────────────────
   test-engine:
