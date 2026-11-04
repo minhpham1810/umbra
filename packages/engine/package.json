@@ -1,7 +1,7 @@
 {
   "name": "umbra-engine",
   "version": "0.1.1",
-  "description": "Deterministic, headless 3D game engine for AI agents: Rapier physics, replayable runs, per-tick state hashes, navmesh, 2D and Three.js views.",
+  "description": "Deterministic, headless 2D and 3D game engine for AI agents: Rapier physics, replayable runs, per-tick state hashes, navmesh, Canvas 2D and Three.js views.",
   "keywords": [
     "game-engine",
     "deterministic",
@@ -57,6 +57,7 @@
     "prepublishOnly": "pnpm run build"
   },
   "dependencies": {
+    "@dimforge/rapier2d-compat": "0.12.0",
     "@dimforge/rapier3d-compat": "0.12.0",
     "recast-navigation": "0.43.1",
     "zod": "^3.23.8"

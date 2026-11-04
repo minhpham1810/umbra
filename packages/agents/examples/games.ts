@@ -8,6 +8,7 @@ import type { AgentGame } from "../src/game.js";
 import { Body, Eaten, Food, snake, type SnakeInput } from "../../engine/examples/snake/snake.js";
 import { Coin, Player, Score, collect, type CollectInput } from "../../engine/examples/collect/collect.js";
 import { Goal, room, type RoomInput } from "../../engine/examples/room/room.js";
+import { Hero, hop, type HopInput } from "../../engine/examples/hop/hop.js";
 
 const pos = (w: World, c: ComponentType) => w.first(c, Transform)?.[2].position;
 
@@ -43,4 +44,13 @@ export const roomAgent: AgentGame<RoomInput> = {
   },
 };
 
-export const games: AgentGame[] = [snakeAgent, collectAgent, roomAgent];
+export const hopAgent: AgentGame<HopInput> = {
+  game: hop,
+  hold: 8,
+  moves: [{ x: 1, jump: false }, { x: 1, jump: true }, { x: 0, jump: false }, { x: -1, jump: false }],
+  levels: { hop: null },
+  // Further right is closer to the flag; height breaks ties, so climbing looks like progress.
+  score: (w) => { const p = pos(w, Hero)!; return p.x + 0.5 * p.y; },
+};
+
+export const games: AgentGame[] = [snakeAgent, collectAgent, roomAgent, hopAgent];

@@ -10,6 +10,11 @@
     "note": "playtestGame found no bugs and searched out this win (321 ticks)."
   },
   {
+    "file": "hop-win.json",
+    "title": "Hop: 2D physics platformer",
+    "note": "playtestGame found no bugs and searched out this win (311 ticks)."
+  },
+  {
     "file": "lantern-1-win.json",
     "title": "Lantern 1: jump the gap",
     "note": "searchReach found a winning route: walk, then jump the broken floor."

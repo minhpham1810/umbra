@@ -23,9 +23,10 @@ import { verifyReplay, type Game } from "../src/core/game.js";
 import { snake } from "../examples/snake/snake.js";
 import { collect } from "../examples/collect/collect.js";
 import { room } from "../examples/room/room.js";
+import { hop } from "../examples/hop/hop.js";
 
 /** Games whose umbra-replay files may be saved in the replay dirs. */
-const GAMES: Game<any, any>[] = [snake, collect, room];
+const GAMES: Game<any, any>[] = [snake, collect, room, hop];
 
 const REPO_ROOT = resolve(import.meta.dirname, "../../..");
 const DIRS = [

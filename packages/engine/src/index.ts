@@ -4,11 +4,13 @@ export * from "./core/index.js";
 export { z } from "zod";
 // Shared spatial data and render data (plain components, no renderer).
 export * from "./spatial/transform.js";
+export * from "./spatial/angle.js";
 export * from "./render/components.js";
 // Model files read headlessly (colliders and navigation from the models the browser draws).
 export * from "./assets/gltf.js";
 // Optional modules on the core.
 export * from "./physics3d/index.js";
+export * from "./physics2d/physics2d.js";
 // The kit-scene platformer runtime (to be rebuilt on the core as optional modules).
 export * from "./input/types.js";
 export * from "./scene/schema.js";
