@@ -2,8 +2,30 @@
   "mcpServers": {
     "umbra": {
       "command": "pnpm",
-      "args": ["--silent", "--filter", "@umbra/boo-and-co", "mcp"],
-      "env": { "UMBRA_SCENES_DIR": "../../games", "UMBRA_REPLAYS_DIR": "../../replays" }
+      "args": [
+        "--silent",
+        "--filter",
+        "@umbra/boo-and-co",
+        "mcp"
+      ],
+      "env": {
+        "UMBRA_SCENES_DIR": "../../games",
+        "UMBRA_REPLAYS_DIR": "../../replays"
+      }
+    },
+    "umbra-games": {
+      "command": "pnpm",
+      "args": [
+        "--silent",
+        "--filter",
+        "umbra-agents",
+        "mcp",
+        "--games",
+        "examples/games.ts"
+      ],
+      "env": {
+        "UMBRA_REPLAYS_DIR": "../../replays"
+      }
     }
   }
 }

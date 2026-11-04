@@ -9,5 +9,5 @@
       "umbra-engine": ["../engine/src/index.ts"]
     }
   },
-  "include": ["src"]
+  "include": ["src", "examples"]
 }
