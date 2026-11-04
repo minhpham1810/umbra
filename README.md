@@ -4,9 +4,13 @@
 [![npm: umbra-agents](https://img.shields.io/npm/v/umbra-agents?label=umbra-agents)](https://www.npmjs.com/package/umbra-agents)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-**A deterministic TypeScript 3D game engine built for AI agents.** Every run is
+**A deterministic TypeScript 2D and 3D game engine built for AI agents.** Every run is
 reproducible tick for tick, in Node and in the browser, so agents can build levels,
 play them headlessly and report each bug with a replay that proves it.
+
+New here? Start with the [guides](docs/README.md): [getting started](docs/getting-started.md),
+[the browser](docs/browser.md), [physics](docs/physics.md), [agents](docs/agents.md) and
+[determinism](docs/determinism.md). Every code example in them runs in the test suite.
 
 > Invisible players haunt your game overnight; in the morning you get a list of bugs,
 > each with a replay.
@@ -19,6 +23,7 @@ games run on the same engine: **Lantern**, a dark third-person platformer, and
 
 ## Contents
 
+- [Guides](docs/README.md)
 - [Highlights](#highlights)
 - [Install](#install)
 - [Quick start](#quick-start)
@@ -28,7 +33,7 @@ games run on the same engine: **Lantern**, a dark third-person platformer, and
 - [Studio](#studio)
 - [Benchmark](#benchmark)
 - [How determinism is enforced](#how-determinism-is-enforced)
-- [Rendering and navigation](#rendering-and-navigation)
+- [Rendering, runtime and navigation](#rendering-runtime-and-navigation)
 - [Development](#development)
 - [Current limitations](#current-limitations)
 - [Related work](#related-work)
@@ -212,7 +217,9 @@ documentation: [`umbra-engine`](packages/engine/README.md) and
 
 | Path | Contents |
 | --- | --- |
-| [`packages/engine`](packages/engine) | `umbra-engine`: physics, scene schema, simulation loop, state hashing, navigation, 2D and Three.js views |
+| [`packages/engine`](packages/engine) | `umbra-engine`: the core, 2D and 3D physics, views, browser runtime, navigation; [examples](packages/engine/examples) |
+| [`docs`](docs) | Guides, with examples that run in the test suite |
+| [`apps/playground`](apps/playground) | The engine's examples, playable in the browser |
 | [`packages/agents`](packages/agents) | `umbra-agents`: Playtester, Builder, Fixer, route and balance search, MCP server |
 | [`games/lantern`](games/lantern) | Lantern, a third-person platformer |
 | [`games/boo-and-co`](games/boo-and-co) | Boo & Co., a haunted-mansion management sim with its own simulation |
@@ -452,7 +459,8 @@ and caveats are in [`benchmark/README.md`](benchmark/README.md).
 | Proof every tick | The state hash combines entity state, a Rapier snapshot hash and the simulation's own state |
 | Checked in CI | A 100-run property test, every saved replay run twice against its stored hash, and Node compared with headless Chromium on every scene |
 
-Details: [`.kiro/steering/determinism.md`](.kiro/steering/determinism.md).
+Rules for game code and how to debug a divergence: [docs/determinism.md](docs/determinism.md).
+Engine-internal rules: [`.kiro/steering/determinism.md`](.kiro/steering/determinism.md).
 
 ## Rendering, runtime and navigation
 
@@ -565,13 +573,20 @@ A published version number can never be reused.
 
 ## Current limitations
 
-- Ramps and stairs behave as cubes.
-- Keys, doors and hazards behave as plain pickups; reaching every goal wins.
-- The Playtester does not yet detect softlocks or trivial skips.
+Engine:
+
+- No 2D navmesh yet (`navBakeWorld` is 3D only), no joints, and characters are not
+  carried by moving platforms.
+- glTF colliders read uncompressed triangle data only (no Draco or meshopt).
+- Sounds are not positional.
+
+Demos and their tools (Lantern and Boo & Co. still run on the older kit-scene runtime and
+their own simulation, until they are ported to the core):
+
+- Ramps and stairs behave as cubes; keys, doors and hazards behave as plain pickups.
+- The kit Playtester does not yet detect softlocks or trivial skips.
 - Moving-platform carries are not collision-checked, so keep walls off platform paths.
   Navmesh bakes and route search ignore platforms and crates.
-- Boo & Co. replays cannot yet be viewed in Studio.
-- Replays record a seed, but the simulation has no random systems yet.
 - Changes to hashed state alter hashes between commits even with the same Rapier
   version; regenerate expected hashes before comparing replays across such changes.
 

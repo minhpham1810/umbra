@@ -1,8 +1,12 @@
 # Umbra — Determinism Rules
 
 These are hard constraints. Breaking any one of them can cause replays to diverge between Node and the browser.
+The rules for game code on the generic core (`defineGame`) are in [docs/determinism.md](../../docs/determinism.md):
+randomness from `world.rng` only, no clocks, no engine-dependent math (`rotationZ`/`angleZ` for 2D angles),
+all state in the world, sorted iteration, presentation components never read by simulation.
+The rules below are for the engine itself and the kit-scene runtime.
 
-1. **Pin Rapier.** `@dimforge/rapier3d` is locked to one exact version in `pnpm-lock.yaml`. Never change it without a new benchmark run and a `rapierVersion` bump in all saved scenes.
+1. **Pin Rapier.** `@dimforge/rapier3d-compat` and `@dimforge/rapier2d-compat` are locked to one exact version in `pnpm-lock.yaml`. Never change it without a new benchmark run and a `rapierVersion` bump in all saved scenes.
 
 2. **Sorted construction order.** Bodies, colliders and joints are created and removed in ascending entity-ID order every run. The `buildPhysicsWorld` function must sort before iterating.
 
@@ -16,7 +20,7 @@ These are hard constraints. Breaking any one of them can cause replays to diverg
 
 ## ESLint enforcement
 
-`pnpm lint` (root `eslint.config.mjs`) bans these in `packages/engine/src/{sim,physics,hash,ecs,input}`:
+`pnpm lint` (root `eslint.config.mjs`) bans these in `packages/engine/src/{core,physics3d,physics2d,spatial,sim,physics,hash,ecs,input}` and `games/boo-and-co/src/sim`:
 - `Math.random`, `Math.sin`, `Math.cos`, `Math.tan`, `Math.atan2`, `Math.exp`, `Math.log`, `Math.pow` and friends (results differ between JS engines)
 - `Date`, `performance`
 

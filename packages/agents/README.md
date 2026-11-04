@@ -44,4 +44,6 @@ adds the `game.*` tools (run, observe, search, playtest, verify a replay) for th
 module exports. In code: `createServer({ games })`, and `createServer({ strategy })` for
 `search.strategy`.
 
-Docs and examples: [github.com/minhpham1810/umbra](https://github.com/minhpham1810/umbra). MIT licensed.
+Guide: [Agents](https://github.com/minhpham1810/umbra/blob/main/docs/agents.md), with
+examples for search, playtesting, observation and MCP. Repository:
+[github.com/minhpham1810/umbra](https://github.com/minhpham1810/umbra). MIT licensed.

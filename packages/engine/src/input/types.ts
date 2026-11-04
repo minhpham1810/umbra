@@ -22,8 +22,8 @@ export const BUTTON = {
  * Built from + − × ÷ only (IEEE-exact everywhere), not Math.sin, whose last bit
  * differs between JS engines. Quarter-wave symmetry keeps the table exact.
  */
-export const YAW_SIN = new Float64Array(256);
-export const YAW_COS = new Float64Array(256);
+export const YAW_SIN: Float64Array = new Float64Array(256);
+export const YAW_COS: Float64Array = new Float64Array(256);
 
 /** Taylor series to x^23, accurate to double precision on [0, π/2]. */
 function exactSin(x: number): number {
